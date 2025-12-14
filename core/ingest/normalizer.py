@@ -43,7 +43,8 @@ def merge_spans_to_paragraphs(blocks: List[TextBlock]) -> List[TextBlock]:
                 TextBlock(
                     text=" ".join(current_text),
                     page=current_page,
-                    bbox=(current_bbox[0], current_bbox[1], current_bbox[2], current_bbox[3])
+                    bbox=(current_bbox[0], current_bbox[1], current_bbox[2], current_bbox[3]),
+                    page_height=block.page_height
                 )
             )
             # start new paragraph
@@ -59,7 +60,8 @@ def merge_spans_to_paragraphs(blocks: List[TextBlock]) -> List[TextBlock]:
             TextBlock(
                 text=" ".join(current_text),
                 page=current_page,
-                bbox=(current_bbox[0], current_bbox[1], current_bbox[2], current_bbox[3])
+                bbox=(current_bbox[0], current_bbox[1], current_bbox[2], current_bbox[3]),
+                page_height=block.page_height
             )
         )
 

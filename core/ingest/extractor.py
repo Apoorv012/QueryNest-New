@@ -6,6 +6,7 @@ def extract_text_blocks(doc) -> List[TextBlock]:
     
     for page_number, page in enumerate(doc):
         page_dict = page.get_text("dict")
+        page_height = page.rect.height
         
         for block in page_dict["blocks"]:
             if block["type"] != 0:
@@ -22,7 +23,8 @@ def extract_text_blocks(doc) -> List[TextBlock]:
                         TextBlock(
                             text=text,
                             page=page_number,
-                            bbox=bbox
+                            bbox=bbox,
+                            page_height=page_height
                         )
                     )
     
