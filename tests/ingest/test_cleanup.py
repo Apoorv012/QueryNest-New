@@ -1,6 +1,6 @@
 from core.ingest.loader import load_pdf
 from core.ingest.extractor import extract_text_blocks
-from core.ingest.normalizer import merge_spans_to_paragraphs
+from core.ingest.normalizer import merge_spans_to_lines, merge_lines_to_paragraphs
 from core.ingest.cleanup import remove_headers_and_footers
 from pathlib import Path
 
@@ -14,7 +14,8 @@ BOTTOM_RATIO = 0.9    # bottom 10%
 def test_headers_removed():
     doc = load_pdf(str(SAMPLE_PDF))
     spans = extract_text_blocks(doc)
-    paragraphs = merge_spans_to_paragraphs(spans)
+    lines = merge_spans_to_lines(spans)
+    paragraphs = merge_lines_to_paragraphs(lines)
     cleaned = remove_headers_and_footers(paragraphs)
 
     texts = [p.text.lower() for p in cleaned]
@@ -26,7 +27,8 @@ def test_headers_removed():
 def test_page_numbers_removed_by_position():
     doc = load_pdf(str(SAMPLE_PDF))
     spans = extract_text_blocks(doc)
-    paragraphs = merge_spans_to_paragraphs(spans)
+    lines = merge_spans_to_lines(spans)
+    paragraphs = merge_lines_to_paragraphs(lines)
     cleaned = remove_headers_and_footers(paragraphs)
 
     for p in cleaned:
