@@ -1,6 +1,6 @@
 from typing import List
 from collections import defaultdict
-from .models import TextBlock
+from core.models.text_block import TextBlock
 import re
 
 TOP_RATIO = 0.1       # top 10%

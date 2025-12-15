@@ -1,5 +1,5 @@
 from typing import List
-from .models import TextBlock
+from core.models.text_block import TextBlock
 
 def extract_text_blocks(doc) -> List[TextBlock]:
     blocks: List[TextBlock] = []

@@ -1,5 +1,5 @@
 from typing import List
-from .models import TextBlock
+from core.models.text_block import TextBlock
 import re
 
 LINE_Y_TOLERANCE = 2.5  # tighter than paragraph gap

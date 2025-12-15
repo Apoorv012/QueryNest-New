@@ -1,6 +1,6 @@
 from core.ingest.loader import load_pdf
 from core.ingest.extractor import extract_text_blocks
-from core.ingest.models import TextBlock
+from core.models.text_block import TextBlock
 from pathlib import Path
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
