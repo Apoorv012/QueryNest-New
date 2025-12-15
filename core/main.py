@@ -3,18 +3,30 @@ from ingest.extractor import extract_text_blocks
 from ingest.normalizer import merge_spans_to_paragraphs
 from ingest.cleanup import remove_headers_and_footers
 
-from ingest.cleanup import PAGE_NUMBER_RE
-
 doc = load_pdf("tests/fixtures/sample.pdf")
 spans = extract_text_blocks(doc)
 paragraphs = merge_spans_to_paragraphs(spans)
 cleaned = remove_headers_and_footers(paragraphs)
 
-for i, para in enumerate(paragraphs):
-    if (para.text.lower() == '2'):
-        print(f"para #{i}", para, "\n", sep="\n")
-        
+c = 15
+cnt = 0
+cntLong = 0
+totLongLen = 0
+mi, ma = 1e9, 0
+for i, para in enumerate(cleaned):
+    if (len(para.text) < 10):
+        if c:
+            c -= 1
+            print(f"para #{i}", para, "\n", sep="\n")
+        cnt += 1
+    else:
+        totLongLen += len(para.text)
+        cntLong += 1
+        mi = min(mi, len(para.text))
+        ma = max(ma, len(para.text))
 
-print("page 2", PAGE_NUMBER_RE.match("page 2"))
-print("2", PAGE_NUMBER_RE.match("2"))
-print("two", PAGE_NUMBER_RE.match("two"))
+
+print(cnt, len(cleaned))
+print("Average:", totLongLen / cntLong)
+print(mi, ma)
+# print(len(paragraphs), len(cleaned))
