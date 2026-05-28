@@ -7,8 +7,8 @@ TOP_RATIO = 0.1       # top 10%
 BOTTOM_RATIO = 0.9    # bottom 10%
 MIN_PAGE_REPEATS = 3        # appears on ≥ 3 pages
 
-PAGE_NUMBER_RE = re.compile(r"^(page\s*)?\d+$", re.IGNORECASE)
-WORD_RE = re.compile(r"[A-Za-z]{3,}")
+PAGE_NUMBER_RE = re.compile(r"^(page\s*)?\d+$", re.IGNORECASE) # remove any page number
+WORD_RE = re.compile(r"[A-Za-z]{3,}") # remove any word with less than 3 letters
 
 
 def is_page_number(text: str) -> bool:

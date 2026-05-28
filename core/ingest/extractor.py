@@ -1,7 +1,8 @@
+import pymupdf
 from typing import List
 from core.models.text_block import TextBlock
 
-def extract_text_blocks(doc) -> List[TextBlock]:
+def extract_text_blocks(doc: pymupdf.Document) -> List[TextBlock]:
     blocks: List[TextBlock] = []
     
     for page_number, page in enumerate(doc):
