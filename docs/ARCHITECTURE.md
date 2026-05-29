@@ -8,12 +8,15 @@ This document describes the internal architecture of QueryNest's core engine. It
 
 QueryNest's core is a **pipeline architecture** that transforms raw PDF bytes into searchable, semantically indexed chunks. The pipeline has six stages:
 
-```
-Ingest → Normalize → Cleanup → Chunk → Embed → Index
-                                                  │
-                                         Search ◀─┘
-                                           │
-                                       Highlight
+```mermaid
+graph TD
+    A["Ingest"] --> B["Normalize"]
+    B --> C["Cleanup"]
+    C --> D["Chunk"]
+    D --> E["Embed"]
+    E --> F["Index"]
+    F --> G["Search"]
+    G --> H["Highlight"]
 ```
 
 Each stage is a standalone module with clear inputs/outputs and no circular dependencies.
