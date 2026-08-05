@@ -2,6 +2,8 @@
 
 This document describes the internal architecture of QueryNest's core engine. It is intended for contributors and anyone who wants to understand how the system works under the hood.
 
+> **Note:** The Index/Storage/Ingest sections below (FAISS, SQLite, raw PyMuPDF) describe the pre-pivot plan. The actual target is now **pgvector-in-Postgres** (replacing FAISS + SQLite) and **PyMuPDF4LLM** (replacing raw PyMuPDF) — see `CLAUDE.md` § Planned Direction. This doc hasn't been rewritten for that yet.
+
 ---
 
 ## Overview

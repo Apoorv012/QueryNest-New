@@ -10,9 +10,8 @@ Instead of searching by file name, QueryNest understands the *meaning* of your d
 
 | Feature | Description |
 |---|---|
-| 🔍 **Semantic Search** | Find documents by meaning, not keywords. Search "memory management" to find papers about RAM, paging, virtual memory, etc. |
-| 📅 **Smart Filters** | Query by year range ("2020–2024"), recency ("last 3 years"), or exam type ("T1 only"). |
-| 🖍️ **In-Document Highlighting** | Relevant passages are highlighted directly in the PDF with configurable colors. |
+| 🔍 **Hybrid Search** | Combines semantic (vector) search with metadata filters — year range ("2020–2024"), recency ("last 3 years"), subject, or exam type — in a single query, e.g. *"QP of [subject], last 3 years"* resolves to a subject + year-range filter plus a semantic match, not semantic search alone. |
+| 🖍️ **In-Document Highlighting + Citations** | Relevant passages are highlighted directly in the PDF, and generated answers include citations back to the specific chunk/page they came from. |
 | 🔒 **Privacy-First** | Choose between fully local processing (embeddings + storage on your device) or optional cloud compute. |
 | 📱 **Cross-Platform** | Android, iOS, Web, and Desktop clients — all powered by the same core engine. |
 
@@ -28,9 +27,9 @@ QueryNest-New/
 │   ├── ingest/              # PDF loading, text extraction, normalization, cleanup
 │   ├── chunking/            # Semantic chunking with heading detection
 │   ├── embedding/           # Vector embedding generation (local & cloud)
-│   ├── index/               # Vector index (FAISS / Hnswlib)
-│   ├── search/              # Semantic search + metadata filtering
-│   ├── storage/             # Document & chunk metadata persistence
+│   ├── index/               # Vector storage (pgvector, in Postgres)
+│   ├── search/              # Hybrid search: semantic + metadata filtering
+│   ├── storage/             # Document & chunk metadata persistence (Postgres)
 │   ├── models/              # Shared data models (TextBlock, Chunk, etc.)
 │   ├── config.py            # Global configuration
 │   └── main.py              # CLI entry point
@@ -40,22 +39,24 @@ QueryNest-New/
 │   └── desktop/             # Desktop app (Electron / Tauri)
 ├── packages/                # Shared frontend utilities
 ├── scripts/                 # Dev & deployment scripts
-├── tests/                   # Test suite
+├── tests/                   # Test suite + evaluation harness
 │   ├── fixtures/            # Sample PDFs for testing
 │   └── ingest/              # Ingest module tests
 └── requirements.txt         # Python dependencies
 ```
 
+> **Note:** `core/index/` and `core/storage/` above describe the target design (pgvector in Postgres). The current code still uses a standalone FAISS index — see [Current Status](#-current-status).
+
 ### Core Pipeline
 
 ```mermaid
 graph TD
-    A["PDF File"] --> B["Ingest (PyMuPDF)"]
+    A["PDF File"] --> B["Ingest (PyMuPDF4LLM)"]
     B --> C["Chunking (Semantic)"]
     C --> D["Embedding (Local/Cloud)"]
-    D --> E["Index (FAISS/Hnsw)"]
-    E --> F["Search (Semantic + Filters)"]
-    F --> G["Highlight (PDF Annot)"]
+    D --> E["Index (pgvector in Postgres)"]
+    E --> F["Search (Hybrid: Semantic + Metadata Filters)"]
+    F --> G["Highlight (PDF Annot) + Answer with Citations"]
 ```
 
 ## 📦 Current Status
@@ -75,16 +76,22 @@ graph TD
 | **TextBlock Model** | `core/models/text_block.py` | ✅ Done |
 | **Chunk Model** | `core/models/chunk.py` | ✅ Done |
 
+Note: the ingest pipeline above currently uses raw **PyMuPDF**; migrating it to **PyMuPDF4LLM** is planned but not started — nothing in `core/ingest/` has changed yet, and the migration will likely simplify some of the normalization/heading heuristics.
+
 ### 🔲 Upcoming — Core Engine
 
 | Module | Status |
 |---|---|
-| Embedding generation (sentence-transformers) | 🔲 Next |
-| Vector indexing (FAISS) | 🔲 Planned |
-| Semantic search with metadata filtering | 🔲 Planned |
+| Embedding generation (local, via `fastembed`) | ✅ Done |
+| Vector indexing (FAISS, standalone) | ✅ Done — being replaced by pgvector |
+| Migrate ingest to PyMuPDF4LLM | 🔲 Planned |
+| Vector storage via **pgvector** (Postgres) | 🔲 Planned |
+| Hybrid search (semantic + metadata filtering) | 🔲 Planned |
 | Document metadata extraction (year, subject, type) | 🔲 Planned |
 | PDF highlight annotation | 🔲 Planned |
-| Storage layer (SQLite) | 🔲 Planned |
+| Answer generation with citations | 🔲 Planned |
+| Storage layer (Postgres) | 🔲 Planned |
+| Evaluation harness (retrieval/answer quality metrics) | 🔲 Planned |
 | REST API server | 🔲 Planned |
 
 ---
@@ -121,9 +128,6 @@ pip install -r requirements.txt
 ```bash
 # Run the main pipeline (ingest + chunk a sample PDF)
 python -m core.main
-
-# Run tests
-pytest
 ```
 
 ---
@@ -143,35 +147,7 @@ pytest -v
 pytest tests/ingest/test_extractor.py
 ```
 
----
-
-## 🔮 Roadmap
-
-### Phase 1 — Core Engine (Current)
-- [x] PDF ingestion & text extraction
-- [x] Text normalization (span → line → paragraph)
-- [x] Header/footer/junk removal
-- [x] Semantic chunking with heading boundaries
-- [ ] Embedding generation (sentence-transformers, local-first)
-- [ ] Vector index (FAISS) for fast similarity search
-- [ ] Semantic search with year/type/subject filters
-- [ ] Document metadata extraction
-- [ ] Storage layer (SQLite for metadata, FAISS for vectors)
-
-### Phase 2 — Highlighting & API
-- [ ] PDF highlight annotations on search results
-- [ ] REST API server (FastAPI)
-- [ ] Configurable highlight colors
-
-### Phase 3 — Frontends
-- [ ] Web app
-- [ ] Android & iOS app
-- [ ] Desktop app (Electron/Tauri)
-
-### Phase 4 — Privacy & Deployment
-- [ ] Cloud vs. local compute toggle
-- [ ] End-to-end encryption for cloud mode
-- [ ] Self-hosted deployment option
+Beyond unit tests, an evaluation harness is planned to measure retrieval and answer quality (e.g. precision/recall on a fixed query set, citation accuracy) and track those metrics over time — so a change's impact on real search quality is measurable, not just whether tests pass.
 
 ---
 
