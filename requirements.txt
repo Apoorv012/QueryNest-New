@@ -1,2 +1,5 @@
 PyMuPDF
 pytest
+fastembed
+faiss-cpu
+numpy
