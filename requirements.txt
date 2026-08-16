@@ -1,5 +1,4 @@
-PyMuPDF
+pymupdf4llm
 pytest
 fastembed
 faiss-cpu
-numpy

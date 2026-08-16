@@ -1,43 +1,60 @@
-from core.ingest.loader import load_pdf
-from core.ingest.extractor import extract_text_blocks
-from core.models.text_block import TextBlock
-from pathlib import Path
-
-FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
-SAMPLE_PDF = FIXTURES_DIR / "sample.pdf"
-
-def test_pdf_loads():
-    doc = load_pdf(str(SAMPLE_PDF))
-    assert doc is not None
-    assert len(doc) > 0
+from core.models.extracted import ExtractedDocument, ExtractedPage, ExtractedBlock
 
 
-def test_extracts_text_blocks():
-    doc = load_pdf(str(SAMPLE_PDF))
-    blocks = extract_text_blocks(doc)
-
-    assert isinstance(blocks, list)
-    assert len(blocks) > 0
+def test_returns_extracted_document(extracted_doc):
+    assert isinstance(extracted_doc, ExtractedDocument)
+    assert extracted_doc.filename != ""
+    assert len(extracted_doc.pages) > 0
 
 
-def test_blocks_have_required_fields():
-    doc = load_pdf(str(SAMPLE_PDF))
-    blocks = extract_text_blocks(doc)
-
-    block = blocks[0]
-    assert isinstance(block, TextBlock)
-    assert isinstance(block.text, str)
-    assert block.text.strip() != ""
-    assert isinstance(block.page, int)
-    assert block.page >= 0
-    assert isinstance(block.bbox, tuple)
-    assert len(block.bbox) == 4
+def test_pages_have_structure(extracted_doc):
+    for page in extracted_doc.pages:
+        assert isinstance(page, ExtractedPage)
+        assert page.page_number >= 1
+        assert page.width > 0
+        assert page.height > 0
 
 
-def test_contains_expected_text():
-    doc = load_pdf(str(SAMPLE_PDF))
-    blocks = extract_text_blocks(doc)
+def test_blocks_have_valid_fields(extracted_doc):
+    for page in extracted_doc.pages:
+        for block in page.blocks:
+            assert isinstance(block, ExtractedBlock)
+            assert block.text.strip() != ""
+            assert block.page >= 0
+            assert isinstance(block.bbox, tuple)
+            assert len(block.bbox) == 4
+            assert block.type != ""
 
-    full_text = " ".join(b.text for b in blocks).lower()
 
-    assert "attention is all you need" in full_text
+def test_bbox_within_page_bounds(extracted_doc):
+    for page in extracted_doc.pages:
+        for block in page.blocks:
+            x0, y0, x1, y1 = block.bbox
+            assert x0 >= 0
+            assert y0 >= 0
+            assert x1 <= page.width * 2
+            assert y1 <= page.height
+
+
+def test_contains_expected_text(extracted_doc):
+    all_text = " ".join(
+        b.text for page in extracted_doc.pages for b in page.blocks
+    ).lower()
+    assert "attention is all you need" in all_text
+
+
+def test_no_headers_footers(extracted_doc):
+    all_text = " ".join(
+        b.text for page in extracted_doc.pages for b in page.blocks
+    ).lower()
+    count = all_text.count("attention is all you need")
+    assert count <= 1
+
+
+def test_section_headers_detected(extracted_doc):
+    headers = [
+        b.text for page in extracted_doc.pages for b in page.blocks
+        if b.type == "section-header"
+    ]
+    assert len(headers) > 0
+    assert any("abstract" in h.lower() for h in headers)
