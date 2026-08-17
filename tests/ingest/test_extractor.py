@@ -1,4 +1,4 @@
-from core.models.extracted import ExtractedDocument, ExtractedPage, ExtractedBlock
+from core.models.extracted import ExtractedBlock, ExtractedDocument, ExtractedPage
 
 
 def test_returns_extracted_document(extracted_doc):

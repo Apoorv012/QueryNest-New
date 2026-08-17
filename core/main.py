@@ -10,8 +10,8 @@ import sys
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-from core.ingest.extractor import extract
 from core.chunking.chunker import chunk_document
+from core.ingest.extractor import extract
 
 
 def main():

@@ -1,22 +1,23 @@
-from typing import List
-from core.models.extracted import ExtractedDocument, ExtractedBlock
+
 from core.models.chunk import Chunk
+from core.models.extracted import ExtractedBlock, ExtractedDocument
+
 from .tokenizer import estimate_tokens
 
 MAX_TOKENS = 400
 MIN_TOKENS = 120
 
 
-def chunk_document(doc: ExtractedDocument) -> List[Chunk]:
+def chunk_document(doc: ExtractedDocument) -> list[Chunk]:
     blocks = [
         b for page in doc.pages for b in page.blocks
     ]
     return _chunk_blocks(blocks)
 
 
-def _chunk_blocks(blocks: List[ExtractedBlock]) -> List[Chunk]:
-    chunks: List[Chunk] = []
-    current_blocks: List[ExtractedBlock] = []
+def _chunk_blocks(blocks: list[ExtractedBlock]) -> list[Chunk]:
+    chunks: list[Chunk] = []
+    current_blocks: list[ExtractedBlock] = []
     current_tokens = 0
     current_heading = ""
     chunk_index = 0
@@ -47,7 +48,7 @@ def _chunk_blocks(blocks: List[ExtractedBlock]) -> List[Chunk]:
     return chunks
 
 
-def _flush(blocks: List[ExtractedBlock], heading: str, chunk_index: int) -> Chunk:
+def _flush(blocks: list[ExtractedBlock], heading: str, chunk_index: int) -> Chunk:
     return Chunk(
         text="\n".join(b.text for b in blocks),
         source_blocks=blocks,

@@ -1,5 +1,5 @@
-from core.models.extracted import ExtractedBlock
 from core.chunking.chunker import _chunk_blocks
+from core.models.extracted import ExtractedBlock
 
 
 def _block(text, btype="text"):

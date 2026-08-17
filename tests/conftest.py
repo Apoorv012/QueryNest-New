@@ -1,4 +1,5 @@
 import pytest
+
 from core.ingest.extractor import extract
 
 SAMPLE_PDF = "tests/fixtures/sample.pdf"

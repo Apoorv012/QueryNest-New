@@ -2,7 +2,7 @@ import json
 
 import pymupdf4llm
 
-from core.models.extracted import ExtractedBlock, ExtractedPage, ExtractedDocument
+from core.models.extracted import ExtractedBlock, ExtractedDocument, ExtractedPage
 
 CONTENT_TYPES = frozenset({
     "text",
