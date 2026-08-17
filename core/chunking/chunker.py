@@ -1,49 +1,56 @@
 from typing import List
-from .heading import is_heading
+from core.models.extracted import ExtractedDocument, ExtractedBlock
+from core.models.chunk import Chunk
 from .tokenizer import estimate_tokens
-from core.models.chunk import Chunk, Paragraph
-from core.models.text_block import TextBlock
 
 MAX_TOKENS = 400
 MIN_TOKENS = 120
 
 
-def chunk_paragraph(paragraphs: List[TextBlock]) -> List[Chunk]:
+def chunk_document(doc: ExtractedDocument) -> List[Chunk]:
+    blocks = [
+        b for page in doc.pages for b in page.blocks
+    ]
+    return _chunk_blocks(blocks)
+
+
+def _chunk_blocks(blocks: List[ExtractedBlock]) -> List[Chunk]:
     chunks: List[Chunk] = []
-
-    current_text = []
-    current_paragraphs: List[Paragraph] = []
+    current_blocks: List[ExtractedBlock] = []
     current_tokens = 0
+    current_heading = ""
+    chunk_index = 0
 
-    for p in paragraphs:
-        tokens = estimate_tokens(p.text)
+    for block in blocks:
+        tokens = estimate_tokens(block.text)
 
-        if is_heading(p.text) and current_tokens >= MIN_TOKENS:
-            chunks.append(_flush(current_text, current_paragraphs))
-            current_text = []
-            current_paragraphs = []
+        if block.type == "section-header":
+            if current_blocks:
+                chunks.append(_flush(current_blocks, current_heading, chunk_index))
+                chunk_index += 1
+                current_blocks = []
+                current_tokens = 0
+            current_heading = block.text.strip()
+
+        elif current_tokens + tokens > MAX_TOKENS and current_tokens >= MIN_TOKENS:
+            chunks.append(_flush(current_blocks, current_heading, chunk_index))
+            chunk_index += 1
+            current_blocks = []
             current_tokens = 0
 
-        if current_tokens + tokens > MAX_TOKENS and current_tokens >= MIN_TOKENS:
-            chunks.append(_flush(current_text, current_paragraphs))
-            current_text = []
-            current_paragraphs = []
-            current_tokens = 0
-
-        current_text.append(p.text)
-        current_paragraphs.append(
-            Paragraph(text=p.text, page=p.page, bbox=p.bbox)
-        )
+        current_blocks.append(block)
         current_tokens += tokens
 
-    if current_text:
-        chunks.append(_flush(current_text, current_paragraphs))
+    if current_blocks:
+        chunks.append(_flush(current_blocks, current_heading, chunk_index))
 
     return chunks
 
 
-def _flush(text_lines: List[str], paragraphs: List[Paragraph]) -> Chunk:
+def _flush(blocks: List[ExtractedBlock], heading: str, chunk_index: int) -> Chunk:
     return Chunk(
-        text="\n".join(text_lines),
-        paragraphs=paragraphs,
+        text="\n".join(b.text for b in blocks),
+        source_blocks=blocks,
+        heading=heading,
+        chunk_index=chunk_index,
     )

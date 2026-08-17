@@ -11,6 +11,7 @@ import sys
 sys.stdout.reconfigure(encoding="utf-8")
 
 from core.ingest.extractor import extract
+from core.chunking.chunker import chunk_document
 
 
 def main():
@@ -18,18 +19,19 @@ def main():
     pdf_path = args[0] if args else "tests/fixtures/sample.pdf"
 
     doc = extract(pdf_path)
+    chunks = chunk_document(doc)
 
     print(f"File: {doc.filename}")
     print(f"Pages: {len(doc.pages)}")
+    print(f"Chunks: {len(chunks)}")
     print()
 
-    for page in doc.pages[:3]:
-        print(f"--- Page {page.page_number} ({len(page.blocks)} blocks) ---")
-        for b in page.blocks[:5]:
-            print(f"  [{b.type}] {b.text[:120]}")
-        if len(page.blocks) > 5:
-            print(f"  ... +{len(page.blocks) - 5} more blocks")
+    for chunk in chunks[:5]:
+        print(f"--- Chunk {chunk.chunk_index} [{chunk.heading}] ({len(chunk.source_blocks)} blocks) ---")
+        print(f"  {chunk.text[:150]}...")
         print()
+    if len(chunks) > 5:
+        print(f"... +{len(chunks) - 5} more chunks")
 
 
 if __name__ == "__main__":
