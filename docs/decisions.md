@@ -56,3 +56,28 @@ Architecture and technical decisions with rationale.
 - pglite: WASM-based, JS/TS only, alpha status, no Python binding
 
 **Risk:** Sync between local and cloud adds complexity. Mitigated by making sync optional and treating cloud as secondary storage.
+
+---
+
+## D4: Embedding Model — fastembed with BAAI/bge-small-en-v1.5
+
+**Decision:** Use fastembed library with BAAI/bge-small-en-v1.5 model for text embeddings.
+
+**Why:**
+- **Size**: 67 MB (smallest available), no PyTorch dependency
+- **Speed**: ONNX Runtime optimized for CPU inference
+- **Quality**: Good on MTEB leaderboard, sufficient for personal PDF search
+- **License**: MIT (permissive)
+- **Dimensions**: 384 (fast vector search)
+- **Already in requirements.txt**: No new dependencies needed
+
+**Alternatives considered:**
+- sentence-transformers: 2GB+ install (PyTorch), overkill for this use case
+- Larger BGE models (bge-base, bge-large): Higher quality but 3-18x larger
+- API models (OpenAI, Cohere): Not free, requires API key, contradicts local-first
+
+**Risk:** English-only model. Mitigated by future upgrade path to multilingual models if needed.
+
+**Future considerations:**
+- If quality insufficient, upgrade to BAAI/bge-base-en-v1.5 (210 MB, 768 dims)
+- If multilingual needed, upgrade to intfloat/multilingual-e5-large (2.2 GB)
