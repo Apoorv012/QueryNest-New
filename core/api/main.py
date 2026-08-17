@@ -5,7 +5,7 @@ sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import router
+from .routes import api_router
 
 app = FastAPI(title="QueryNest API")
 
@@ -16,7 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router)
+app.include_router(api_router)
 
 
 if __name__ == "__main__":
