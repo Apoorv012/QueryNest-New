@@ -11,6 +11,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: "pip"
-      - run: pip install -r requirements.txt ruff
+      - run: pip install -r requirements.txt ruff mypy
       - run: ruff check .
+      - run: mypy core/
       - run: pytest
