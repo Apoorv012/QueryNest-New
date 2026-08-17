@@ -1,13 +1,12 @@
 import uuid
 from pathlib import Path
-from typing import List
 
 from fastapi import APIRouter, File, UploadFile
 
-from core.ingest.extractor import extract
 from core.chunking.chunker import chunk_document
-from core.models.chunk import Chunk
-from .store import save_document, get_chunks
+from core.ingest.extractor import extract
+
+from .store import get_chunks, save_document
 
 router = APIRouter()
 
