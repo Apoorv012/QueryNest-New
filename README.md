@@ -1,173 +1,171 @@
-# 🪶 QueryNest
+# QueryNest
 
-**QueryNest** is a local-first, AI-powered document search engine that lets users find information inside their personal PDFs using natural language — with precise in-document highlights.
-
-Instead of searching by file name, QueryNest understands the *meaning* of your documents. Search for "operating system concepts" and find every paper that discusses operating systems — even if those exact words never appear. Filter by year, exam type, or subject, and jump straight to the highlighted passage.
+An AI-powered semantic search engine for personal PDFs. Search by meaning, not keywords — find information across all your documents and jump straight to the highlighted passage.
 
 ---
 
-## ✨ Key Features
+## What It Does
 
-| Feature | Description |
-|---|---|
-| 🔍 **Hybrid Search** | Combines semantic (vector) search with metadata filters — year range ("2020–2024"), recency ("last 3 years"), subject, or exam type — in a single query, e.g. *"QP of [subject], last 3 years"* resolves to a subject + year-range filter plus a semantic match, not semantic search alone. |
-| 🖍️ **In-Document Highlighting + Citations** | Relevant passages are highlighted directly in the PDF, and generated answers include citations back to the specific chunk/page they came from. |
-| 🔒 **Privacy-First** | Choose between fully local processing (embeddings + storage on your device) or optional cloud compute. |
-| 📱 **Cross-Platform** | Android, iOS, Web, and Desktop clients — all powered by the same core engine. |
+- **Semantic Search**: Understands meaning — search "operating system concepts" and find every relevant paper, even if those exact words never appear
+- **In-Document Highlighting**: Relevant passages are highlighted in yellow directly in the PDF
+- **AI Answers with Citations**: Generated answers include citations back to specific chunks/pages
+- **Hybrid Filtering**: Combine semantic search with metadata filters (year range, subject, document type)
 
 ---
 
-## 🏗️ Architecture
+## Current Status
 
-QueryNest follows a modular **monorepo** structure with a shared Python core and platform-specific frontends:
-
-```
-QueryNest-New/
-├── core/                    # Shared Python engine (the brain)
-│   ├── ingest/              # PDF loading, text extraction, normalization, cleanup
-│   ├── chunking/            # Semantic chunking with heading detection
-│   ├── embedding/           # Vector embedding generation (local & cloud)
-│   ├── index/               # Vector storage (pgvector, in Postgres)
-│   ├── search/              # Hybrid search: semantic + metadata filtering
-│   ├── storage/             # Document & chunk metadata persistence (Postgres)
-│   ├── models/              # Shared data models (TextBlock, Chunk, etc.)
-│   ├── config.py            # Global configuration
-│   └── main.py              # CLI entry point
-├── apps/                    # Platform-specific frontends
-│   ├── web/                 # Web app (React / Next.js)
-│   ├── mobile/              # Mobile app (React Native / Flutter)
-│   └── desktop/             # Desktop app (Electron / Tauri)
-├── packages/                # Shared frontend utilities
-├── scripts/                 # Dev & deployment scripts
-├── tests/                   # Test suite + evaluation harness
-│   ├── fixtures/            # Sample PDFs for testing
-│   └── ingest/              # Ingest module tests
-└── requirements.txt         # Python dependencies
-```
-
-> **Note:** `core/index/` and `core/storage/` above describe the target design (pgvector in Postgres). The current code still uses a standalone FAISS index — see [Current Status](#-current-status).
-
-### Core Pipeline
-
-```mermaid
-graph TD
-    A["PDF File"] --> B["Ingest (PyMuPDF4LLM)"]
-    B --> C["Chunking (Semantic)"]
-    C --> D["Embedding (Local/Cloud)"]
-    D --> E["Index (pgvector in Postgres)"]
-    E --> F["Search (Hybrid: Semantic + Metadata Filters)"]
-    F --> G["Highlight (PDF Annot) + Answer with Citations"]
-```
-
-## 📦 Current Status
-
-### ✅ Completed — Ingest & Chunking Pipeline
-
-| Module | File | Status |
-|---|---|---|
-| **PDF Loader** | `core/ingest/loader.py` | ✅ Done |
-| **Text Extractor** | `core/ingest/extractor.py` | ✅ Done |
-| **Span → Line Normalizer** | `core/ingest/normalizer.py` | ✅ Done |
-| **Line → Paragraph Normalizer** | `core/ingest/normalizer.py` | ✅ Done |
-| **Header/Footer Cleanup** | `core/ingest/cleanup.py` | ✅ Done |
-| **Heading Detection** | `core/chunking/heading.py` | ✅ Done |
-| **Token Estimation** | `core/chunking/tokenizer.py` | ✅ Done |
-| **Semantic Chunker** | `core/chunking/chunker.py` | ✅ Done |
-| **TextBlock Model** | `core/models/text_block.py` | ✅ Done |
-| **Chunk Model** | `core/models/chunk.py` | ✅ Done |
-
-Note: the ingest pipeline above currently uses raw **PyMuPDF**; migrating it to **PyMuPDF4LLM** is planned but not started — nothing in `core/ingest/` has changed yet, and the migration will likely simplify some of the normalization/heading heuristics.
-
-### 🔲 Upcoming — Core Engine
+### Implemented
 
 | Module | Status |
 |---|---|
-| Embedding generation (local, via `fastembed`) | ✅ Done |
-| Vector indexing (FAISS, standalone) | ✅ Done — being replaced by pgvector |
-| Migrate ingest to PyMuPDF4LLM | 🔲 Planned |
-| Vector storage via **pgvector** (Postgres) | 🔲 Planned |
-| Hybrid search (semantic + metadata filtering) | 🔲 Planned |
-| Document metadata extraction (year, subject, type) | 🔲 Planned |
-| PDF highlight annotation | 🔲 Planned |
-| Answer generation with citations | 🔲 Planned |
-| Storage layer (Postgres) | 🔲 Planned |
-| Evaluation harness (retrieval/answer quality metrics) | 🔲 Planned |
-| REST API server | 🔲 Planned |
+| PDF extraction (pymupdf4llm) | Done |
+| Document-aware chunking | Done |
+| FastAPI backend (dev endpoints) | Done |
+| Chunk viewer dev tool | Done |
+| Tests (22 passing) | Done |
+
+### In Progress / Planned
+
+| Module | Status |
+|---|---|
+| Embedding pipeline (fastembed) | Planned |
+| Vector index (pgvector in Postgres) | Planned |
+| Hybrid search (semantic + metadata) | Planned |
+| Answer generation with citations | Planned |
+| PDF highlight annotation | Planned |
 
 ---
 
-## 🚀 Getting Started
+## Production Vision
+
+### Platforms
+
+| Platform | Account Required | Processing | Offline |
+|---|---|---|---|
+| Windows | Optional | Local | Yes |
+| macOS | Optional | Local | Yes |
+| Android | Yes | Cloud | No |
+| iOS | Yes | Cloud | No |
+| Web | Yes | Cloud | No |
+
+### How It Works
+
+**Desktop (primary)**:
+- Install the app — no Docker, no configuration
+- Upload PDFs — processed locally (extraction, chunking, embedding)
+- Search works offline
+- Optional: Sign in to sync data to cloud (access from mobile)
+
+**Mobile / Web**:
+- Sign in to your account
+- PDFs processed by desktop appear automatically
+- Search and view highlighted passages
+
+**Data flow**:
+```
+Desktop (processing)      Cloud (sync)       Mobile/Web (viewing)
+    ┌─────────┐           ┌────────┐          ┌─────────┐
+    │ Extract │ ───────>  │ Supabase│ <──────  │ Search  │
+    │ Chunk   │           │ Postgres│          │ View    │
+    │ Embed   │           │ pgvector│          │ Highlight│
+    └─────────┘           └────────┘          └─────────┘
+```
+
+---
+
+## Getting Started (Development)
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.14+
 - pip
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/Apoorv012/QueryNest-New.git
 cd QueryNest-New
 
-# Create virtual environment
 python -m venv .venv
+.venv\Scripts\activate    # Windows
+source .venv/bin/activate # macOS/Linux
 
-# Activate it
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
-
-# Install dependencies
 pip install -r requirements.txt
 ```
 
 ### Running
 
 ```bash
-# Run the main pipeline (ingest + chunk a sample PDF)
+# Run the full pipeline (ingest sample PDF)
 python -m core.main
+
+# Ingest a specific PDF
+python -m core.main ingest <pdf_path>
+
+# Run the dev server
+uvicorn core.api.main:app --reload
 ```
 
----
-
-## 🧪 Testing
-
-Tests are written with **pytest** and live in the `tests/` directory. The test suite uses the "Attention Is All You Need" paper (`tests/fixtures/sample.pdf`) as a fixture.
+### Chunk Viewer (Dev Tool)
 
 ```bash
-# Run all tests
-pytest
-
-# Run with verbose output
-pytest -v
-
-# Run a specific test file
-pytest tests/ingest/test_extractor.py
+cd tools/chunk-viewer
+npm install
+npm run dev
 ```
 
-Beyond unit tests, an evaluation harness is planned to measure retrieval and answer quality (e.g. precision/recall on a fixed query set, citation accuracy) and track those metrics over time — so a change's impact on real search quality is measurable, not just whether tests pass.
+Opens at `http://localhost:5173`. Upload a PDF to inspect extraction and chunking output.
 
 ---
 
-## 🛡️ Privacy Philosophy
+## Testing
 
-QueryNest is built **local-first**. By default:
-- All PDF processing happens on your device
-- Embeddings are generated locally using open-source models
-- No data leaves your machine
+Tests use pytest with a real PDF fixture ("Attention Is All You Need"):
 
-For users who want faster processing, an **optional cloud mode** is available — with data encrypted in transit and at rest.
+```bash
+pytest              # Run all tests
+pytest -v           # Verbose output
+pytest tests/chunking/test_chunker.py  # Single file
+```
 
 ---
 
-## 📄 License
+## Project Structure
+
+```
+QueryNest-New/
+├── core/                    # Python engine
+│   ├── ingest/              # PDF extraction (pymupdf4llm)
+│   ├── chunking/            # Document-aware chunking
+│   ├── models/              # Data models
+│   ├── api/                 # FastAPI backend (dev)
+│   └── main.py              # CLI entry point
+├── tools/
+│   └── chunk-viewer/        # Dev tool for inspecting output
+├── tests/                   # Test suite
+├── docs/                    # Architecture decisions, improvements
+└── requirements.txt
+```
+
+---
+
+## Architecture Decisions
+
+See [docs/decisions.md](docs/decisions.md) for architectural decisions with rationale.
+
+- **D1**: Document-aware chunking (heading-based)
+- **D2**: pgvector in Supabase for storage
+- **D3**: Platform split (desktop offline/cloud, mobile/web cloud-only)
+
+---
+
+## Contributing
+
+Contributions welcome! Please open an issue first to discuss changes.
+
+---
+
+## License
 
 This project is under active development. License TBD.
-
----
-
-## 🤝 Contributing
-
-Contributions welcome! Please open an issue first to discuss what you'd like to change.

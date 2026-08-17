@@ -1,32 +1,37 @@
-# React + TypeScript + Vite
+# Chunk Viewer (Dev Tool)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A React app for inspecting PDF extraction and chunking output. Not for production use.
 
-Currently, two official plugins are available:
+## What It Shows
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Upload**: Drag & drop a PDF to process
+- **Chunk List**: All chunks with heading and text preview
+- **Chunk Detail**: Full text + source blocks with page numbers and bounding boxes
 
-## React Compiler
+## Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# Start the backend first
+cd ../..
+uvicorn core.api.main:app --reload
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+# Then start the frontend
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Opens at `http://localhost:5173`.
+
+## How It Works
+
+1. Upload a PDF via the UI
+2. Backend runs extraction (pymupdf4llm) + chunking
+3. View chunks in the sidebar
+4. Click a chunk to see full text and source blocks
+
+## Tech Stack
+
+- React + TypeScript
+- Vite
+- Tailwind CSS
+- Lucide React icons

@@ -1,196 +1,195 @@
 # QueryNest — Architecture Guide
 
-This document describes the internal architecture of QueryNest's core engine. It is intended for contributors and anyone who wants to understand how the system works under the hood.
-
-> **Note:** The Index/Storage/Ingest sections below (FAISS, SQLite, raw PyMuPDF) describe the pre-pivot plan. The actual target is now **pgvector-in-Postgres** (replacing FAISS + SQLite) and **PyMuPDF4LLM** (replacing raw PyMuPDF) — see `CLAUDE.md` § Planned Direction. This doc hasn't been rewritten for that yet.
+Technical reference for contributors and anyone who wants to understand how the system works.
 
 ---
 
 ## Overview
 
-QueryNest's core is a **pipeline architecture** that transforms raw PDF bytes into searchable, semantically indexed chunks. The pipeline has six stages:
+QueryNest transforms raw PDFs into searchable, semantically indexed chunks. The system has two layers:
 
-```mermaid
-graph TD
-    A["Ingest"] --> B["Normalize"]
-    B --> C["Cleanup"]
-    C --> D["Chunk"]
-    D --> E["Embed"]
-    E --> F["Index"]
-    F --> G["Search"]
-    G --> H["Highlight"]
+1. **Core Engine** (Python): PDF extraction, chunking, embedding, vector search
+2. **Frontend Clients**: Desktop app, mobile apps, web app
+
+---
+
+## Current Pipeline
+
+```
+PDF → pymupdf4llm → ExtractedDocument → chunker → List[Chunk]
 ```
 
-Each stage is a standalone module with clear inputs/outputs and no circular dependencies.
+### Stage 1: Extraction
+
+**Module**: `core/ingest/extractor.py`
+
+Uses pymupdf4llm to extract text with layout awareness:
+
+- Multi-column reading order reconstruction
+- Heading detection via font-size hierarchy
+- Table, image, and formula detection
+- Bounding boxes for every text block
+- Page-level organization
+
+**Input**: PDF file path
+**Output**: `ExtractedDocument` containing `ExtractedPage`s containing `ExtractedBlock`s
+
+### Stage 2: Chunking
+
+**Module**: `core/chunking/chunker.py`
+
+Groups consecutive blocks into semantically coherent chunks:
+
+- **Trigger 1**: Heading boundary (when `section-header` block encountered)
+- **Trigger 2**: Token overflow (MAX_TOKENS = 400)
+- **Minimum**: MIN_TOKENS = 120 (prevents tiny chunks)
+- **Token estimation**: `word_count × 1.3` (rough heuristic)
+
+**Input**: `ExtractedDocument`
+**Output**: `List[Chunk]`
 
 ---
 
 ## Data Models
 
-### `TextBlock` (`core/models/text_block.py`)
+### ExtractedBlock
 
-The atomic unit of extracted text. Every span of text from a PDF becomes a `TextBlock`.
+One span of text from a PDF.
 
 | Field | Type | Description |
 |---|---|---|
-| `text` | `str` | The extracted text content |
+| `text` | `str` | Extracted text content |
 | `page` | `int` | Zero-indexed page number |
-| `bbox` | `Tuple[float, float, float, float]` | Bounding box `(x0, y0, x1, y1)` in PDF coordinates |
-| `page_height` | `float` | Height of the source page (used for header/footer detection) |
+| `bbox` | `Tuple[float, float, float, float]` | Bounding box `(x0, y0, x1, y1)` in PDF points |
+| `type` | `str` | Block type: "text", "section-header", "table", "caption", etc. |
 
-**Design note**: `page_height` is stored per-block rather than looked up later, because it's readily available during extraction and eliminates a cross-reference later.
+### ExtractedPage
 
-### `Chunk` (`core/models/chunk.py`)
+A single page from the PDF.
+
+| Field | Type | Description |
+|---|---|---|
+| `page_number` | `int` | Zero-indexed page number |
+| `blocks` | `List[ExtractedBlock]` | All blocks on this page |
+
+### ExtractedDocument
+
+The complete extracted document.
+
+| Field | Type | Description |
+|---|---|---|
+| `filename` | `str` | Original PDF filename |
+| `pages` | `List[ExtractedPage]` | All pages in order |
+
+### Chunk
 
 A semantically coherent unit of text, ready for embedding.
 
 | Field | Type | Description |
 |---|---|---|
-| `text` | `str` | Joined paragraph text (newline-separated) |
-| `pages` | `List[int]` | Sorted list of pages this chunk spans |
-| `bboxes` | `List[Tuple]` | One bbox per source paragraph |
-
-**Design note**: Chunks track multiple bboxes (one per paragraph) rather than a single merged bbox. This allows precise highlighting of each paragraph independently.
-
-### `Document` (Planned — `core/models/document.py`)
-
-Top-level metadata for an ingested PDF.
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | `str` | UUID |
-| `filename` | `str` | Original filename |
-| `title` | `str` | Extracted or inferred title |
-| `year` | `int \| None` | Publication/exam year |
-| `subject` | `str \| None` | Inferred subject |
-| `doc_type` | `str \| None` | E.g., "question_paper", "notes", "research_paper" |
-| `num_pages` | `int` | Total pages |
-| `ingested_at` | `datetime` | Timestamp |
-
-### `SearchResult` (Planned — `core/models/search_result.py`)
-
-Returned by the search engine.
-
-| Field | Type | Description |
-|---|---|---|
-| `document` | `Document` | Parent document |
-| `chunk` | `Chunk` | Matching chunk |
-| `score` | `float` | Similarity score (0.0–1.0) |
-| `highlights` | `List[Tuple]` | Bboxes to highlight in the PDF |
+| `text` | `str` | Joined paragraph text |
+| `source_blocks` | `List[ExtractedBlock]` | Original blocks that make up this chunk |
+| `heading` | `str` | Section heading (from `section-header` blocks) |
+| `chunk_index` | `int` | Sequential index within document |
 
 ---
 
 ## Module Details
 
-### 1. Ingest (`core/ingest/`)
+### core/ingest/
 
-**Purpose**: Load a PDF and extract structured text with positional metadata.
+- `extractor.py`: Single function `extract(pdf_path) -> ExtractedDocument`. Wraps pymupdf4llm JSON output.
 
-#### `loader.py`
-- Uses **PyMuPDF** (`pymupdf`) to open PDF files.
-- Validates `.pdf` extension.
-- Returns a `pymupdf.Document` handle.
+### core/chunking/
 
-#### `extractor.py`
-- Iterates over every page → block → line → span.
-- Skips non-text blocks (`type != 0`).
-- Strips whitespace, skips empty spans.
-- Produces `List[TextBlock]` — one per span.
+- `chunker.py`: `chunk_document(doc) -> List[Chunk]`. Groups blocks by heading, flushes on boundary or overflow.
+- `tokenizer.py`: `estimate_tokens(text) -> int`. Rough word-count-based estimate.
 
-#### `normalizer.py`
-Two-pass normalization:
+### core/models/
 
-1. **`merge_spans_to_lines`**: Merges spans on the same line (within `LINE_Y_TOLERANCE = 2.5` pts). This reconstructs full lines from fragmented PDF spans.
+- `extracted.py`: `ExtractedBlock`, `ExtractedPage`, `ExtractedDocument`
+- `chunk.py`: `Chunk`
 
-2. **`merge_lines_to_paragraphs`**: Merges consecutive lines into paragraphs when the vertical gap is less than `PARA_GAP = 10.0` pts. Page breaks always start a new paragraph.
+### core/api/ (Dev Only)
 
-#### `cleanup.py`
-Removes noise from the extracted paragraphs:
+- `main.py`: FastAPI app with CORS for localhost:5173
+- `routes.py`: `POST /upload`, `GET /documents/{doc_id}/chunks`
+- `store.py`: In-memory document/chunk storage
 
-- **Repeated headers/footers**: Text appearing on ≥ 3 pages (`MIN_PAGE_REPEATS`) in the top 10% or bottom 10% of the page.
-- **Page numbers**: Numeric-only text at page edges (e.g., "42", "Page 7").
-- **Junk paragraphs**: Very short non-alphabetic strings (≤ 10 chars with no letters).
-- **Non-language content**: Blocks without any word ≥ 3 letters.
+### tools/chunk-viewer/ (Dev Only)
 
-### 2. Chunking (`core/chunking/`)
-
-**Purpose**: Split cleaned paragraphs into chunks sized for embedding models.
-
-#### `chunker.py`
-Greedy chunking with two split triggers:
-
-1. **Heading boundary**: When a heading is detected and the current chunk has ≥ `MIN_TOKENS` (120), flush the chunk.
-2. **Token overflow**: When adding a paragraph would exceed `MAX_TOKENS` (400), flush the current chunk.
-
-Token limits are tuned for typical embedding models (384–512 token context windows).
-
-#### `heading.py`
-Heuristic heading detection:
-
-- Numbered headings: `1.2.3 Title` or `IV. Title`
-- Roman numeral headings: `I. Introduction`
-- ALL CAPS short headings (≤ 5 words)
-- Length cap: text > 40 chars is assumed to be body text.
-
-#### `tokenizer.py`
-Rough token estimation: `word_count × 1.3`. Good enough for chunking decisions; actual tokenization happens at the embedding stage.
-
-### 3. Embedding (`core/embedding/`) — Planned
-
-**Purpose**: Convert chunk text into dense vector representations.
-
-- **Local mode**: `sentence-transformers` with `all-MiniLM-L6-v2` (384-dim, ~80MB).
-- **Cloud mode**: Optional API-based embeddings (OpenAI, Cohere, etc.).
-- Interface: `embed(texts: List[str]) → np.ndarray` of shape `(n, dim)`.
-
-### 4. Index (`core/index/`) — Planned
-
-**Purpose**: Store and search vectors efficiently.
-
-- **FAISS** (`IndexFlatIP` for small collections, `IndexIVFFlat` for large ones).
-- Maps vector indices back to `(document_id, chunk_index)` pairs.
-- Supports incremental addition (no full rebuild on new uploads).
-
-### 5. Search (`core/search/`) — Planned
-
-**Purpose**: Semantic search with metadata filtering.
-
-- Embed the query → search the FAISS index → retrieve top-K chunks.
-- **Post-filter** by metadata: year range, subject, document type.
-- **Smart query parsing**: Extract structured filters from natural language (e.g., "OS papers from 2020 to 2024" → `subject=OS, year_min=2020, year_max=2024`).
-
-### 6. Storage (`core/storage/`) — Planned
-
-**Purpose**: Persist document metadata and chunk data.
-
-- **SQLite** for document metadata (lightweight, zero-config, local-first).
-- **FAISS index files** for vectors (binary serialization).
-- Future: Optional cloud sync with encryption.
+React + TypeScript + Vite app for inspecting extraction output. Shows chunk list, source blocks, and metadata.
 
 ---
 
-## Configuration (`core/config.py`)
+## Production Architecture
 
-Planned configuration structure:
+### Platform Strategy
+
+| Platform | Account | Processing | Offline | Backend |
+|---|---|---|---|---|
+| Windows | Optional | Local | Yes | Local Postgres or Supabase |
+| macOS | Optional | Local | Yes | Local Postgres or Supabase |
+| Android | Yes | Cloud | No | Supabase |
+| iOS | Yes | Cloud | No | Supabase |
+| Web | Yes | Cloud | No | Supabase |
+
+### Storage Strategy (D2)
+
+**Primary**: pgvector in Supabase Postgres
+
+- Vectors stored as `vector` column alongside document/chunk metadata
+- HNSW index for approximate nearest neighbor search
+- SQL WHERE clauses for metadata filtering (year, subject, type)
+- Row-level security for user isolation
+
+**Local Mode** (Desktop only):
+- PostgreSQL with pgvector extension running locally
+- Same schema as Supabase for consistency
+- Optional sync to Supabase for mobile access
+
+### Data Flow
+
+```
+Desktop Processing:
+PDF → Extract → Chunk → Embed → Store in Local Postgres
+                                      ↓
+                              Sync to Supabase (optional)
+                                      ↓
+Mobile/Web Access:
+Query → Supabase pgvector search → Results → Highlight in PDF viewer
+```
+
+---
+
+## Configuration
+
+### Current Constants
+
+```python
+# Chunking
+MAX_TOKENS = 400
+MIN_TOKENS = 120
+
+# Token estimation
+TOKEN_RATIO = 1.3  # words × 1.3 ≈ tokens
+```
+
+### Planned Configuration
 
 ```python
 @dataclass
 class QueryNestConfig:
     # Embedding
-    embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_dim: int = 384
-    use_cloud_embedding: bool = False
 
-    # Chunking
-    max_chunk_tokens: int = 400
-    min_chunk_tokens: int = 120
+    # Storage
+    db_url: str = "postgresql://..."  # Local or Supabase
 
     # Search
     top_k: int = 10
-
-    # Storage
-    db_path: str = "~/.querynest/querynest.db"
-    index_path: str = "~/.querynest/index.faiss"
+    similarity_threshold: float = 0.7
 
     # Highlighting
     highlight_color: Tuple[float, float, float] = (1.0, 1.0, 0.0)  # Yellow
@@ -198,19 +197,46 @@ class QueryNestConfig:
 
 ---
 
-## Cross-Cutting Concerns
+## Error Handling
 
-### Error Handling
-- `ValueError` for invalid inputs (wrong file type, empty queries).
-- `RuntimeError` for infrastructure failures (PDF load failure, model download failure).
-- All errors include descriptive messages for debugging.
+- `ValueError`: Invalid input (wrong file type, empty queries)
+- `RuntimeError`: Infrastructure failures (PDF load failure, model download)
+- All errors include descriptive messages for debugging
 
-### Testing Strategy
-- Tests use `pytest` with a real PDF fixture (`tests/fixtures/sample.pdf` — "Attention Is All You Need").
-- Integration tests run the full pipeline; unit tests mock dependencies.
-- Run with: `pytest` (uses `pythonpath = .` from `pytest.ini`).
+---
 
-### Performance Considerations
-- Embedding is the bottleneck (~100ms per chunk on CPU). Batching is critical.
-- FAISS `IndexFlatIP` is exact but O(n). Switch to `IndexIVFFlat` for > 10K chunks.
-- PyMuPDF is fast (~50ms per page). No optimization needed there.
+## Testing
+
+- **Framework**: pytest
+- **Fixture**: "Attention Is All You Need" paper (`tests/fixtures/sample.pdf`)
+- **Scope**: Session-scoped extraction (runs pymupdf4llm once per test session)
+- **Runtime**: ~20 seconds for full suite
+
+```bash
+pytest                  # All tests
+pytest -v               # Verbose
+pytest tests/chunking/  # Chunking tests only
+```
+
+---
+
+## Performance
+
+- **Extraction**: ~16 seconds for 15-page PDF (includes ONNX layout analysis)
+- **Chunking**: <1 second (pure Python, no I/O)
+- **Embedding**: ~100ms per chunk on CPU (planned)
+- **Search**: <50ms with HNSW index (planned)
+
+GPU acceleration available for pymupdf4llm by switching `onnxruntime` to `onnxruntime-gpu` (drop-in replacement, no code changes).
+
+---
+
+## Future Scope
+
+1. **Embedding pipeline**: fastembed with BAAI/bge-small-en-v1.5
+2. **Vector index**: pgvector with HNSW
+3. **Hybrid search**: Semantic + metadata filtering
+4. **Answer generation**: LLM-based with citations
+5. **PDF highlighting**: Syncfusion Flutter PDF Viewer annotations
+6. **Offline ↔ online sync**: Desktop syncs with Supabase when online
+7. **Cloud processing**: Mobile/web upload to cloud for processing (no desktop required)
