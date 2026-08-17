@@ -1,6 +1,6 @@
 import json
 
-import pymupdf4llm
+import pymupdf4llm  # type: ignore[import-untyped]
 
 from core.models.extracted import ExtractedBlock, ExtractedDocument, ExtractedPage
 

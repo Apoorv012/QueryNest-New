@@ -8,7 +8,7 @@ Usage:
 
 import sys
 
-sys.stdout.reconfigure(encoding="utf-8")
+sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
 
 from core.chunking.chunker import chunk_document
 from core.ingest.extractor import extract
