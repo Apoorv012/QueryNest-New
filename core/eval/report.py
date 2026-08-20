@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from .runner import QueryResult, get_git_commit
 
@@ -16,11 +17,11 @@ def generate_report(
     commit = get_git_commit()
     timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
 
-    all_precisions = {5: [], 10: []}
-    all_recalls = {5: [], 10: []}
-    all_ndcg = {10: []}
-    all_rr = []
-    all_latencies = []
+    all_precisions: dict[int, list[float]] = {5: [], 10: []}
+    all_recalls: dict[int, list[float]] = {5: [], 10: []}
+    all_ndcg: dict[int, list[float]] = {10: []}
+    all_rr: list[float] = []
+    all_latencies: list[float] = []
 
     by_type: dict[str, list[QueryResult]] = {}
     for r in results:
@@ -37,7 +38,7 @@ def generate_report(
     def avg(vals: list[float]) -> float:
         return sum(vals) / len(vals) if vals else 0.0
 
-    report = {
+    report: dict[str, Any] = {
         "timestamp": timestamp,
         "git_commit": commit,
         "total_queries": len(results),
@@ -90,10 +91,10 @@ def generate_report(
 
 
 def print_report(results: list[QueryResult]) -> None:
-    all_precisions = {5: [], 10: []}
-    all_recalls = {5: [], 10: []}
-    all_ndcg = {10: []}
-    all_rr = []
+    all_precisions: dict[int, list[float]] = {5: [], 10: []}
+    all_recalls: dict[int, list[float]] = {5: [], 10: []}
+    all_ndcg: dict[int, list[float]] = {10: []}
+    all_rr: list[float] = []
 
     by_type: dict[str, list[QueryResult]] = {}
     for r in results:

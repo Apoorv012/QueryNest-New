@@ -8,8 +8,8 @@ SMALL_PDF = "tests/fixtures/small.pdf"
 
 @pytest.fixture()
 def client():
+    from core.api import jobs, store
     from core.api.main import app
-    from core.api import store, jobs
 
     store._documents.clear()
     jobs._jobs.clear()
