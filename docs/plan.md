@@ -286,14 +286,34 @@ not a property of choices you made.**
 Change **one thing at a time** and re-run the eval. That discipline is also what makes the
 resume claim defensible: you will be able to say *which* change bought *which* improvement.
 
-**2.1 — Use the query prefix bge was trained with** *(expect the largest single gain)*
-- File: `core/embedding/fastembed.py:56`
-- `embed_query` calls `self._model.embed([query])`, which embeds the query as though it were a
-  passage. BGE-v1.5 models are trained asymmetrically: queries get a special instruction prefix.
-  fastembed exposes `TextEmbedding.query_embed()` for exactly this (confirmed present in your
-  installed 0.8.0).
-- Change: `embed_query` → `query_embed`.
-- Acceptance: one-line change; eval re-run; delta recorded.
+**2.1 — BGE query prefix — TESTED AND REJECTED. Do not retry.**
+- File: `core/embedding/fastembed.py`
+- The hypothesis was that `embed_query` embeds queries in "passage space", and that using
+  BGE-v1.5's query instruction would be the single largest retrieval gain. **Both halves were
+  wrong.** Measured on the 45-query golden set:
+
+| | Recall@5 | Recall@10 | nDCG@10 | MRR | P@5 |
+|---|---|---|---|---|---|
+| Baseline (no prefix) | **0.9444** | **0.9444** | **0.8993** | 0.9000 | **0.2578** |
+| With BGE query prefix | 0.8944 | 0.9056 | 0.8951 | **0.9111** | 0.2444 |
+
+- Two separate findings:
+  1. **`fastembed.query_embed()` is a no-op for this model.** `embed([q])` and `query_embed(q)`
+     return identical vectors (cosine 1.0) for `BAAI/bge-small-en-v1.5` on fastembed 0.8.0.
+     Switching to it changes nothing — the first eval "confirming" this was actually served by
+     a stale uvicorn process, which is why the numbers were byte-identical.
+  2. **Applying the instruction manually makes retrieval worse.** Prefixing with
+     `"Represent this sentence for searching relevant passages: "` genuinely shifts the query
+     vector (cosine 0.97) and costs **5 points of Recall@5** for ~1 point of MRR. Recall is the
+     metric that matters for this product, so this is a regression.
+- Plausible cause: the instruction is tuned for short keyword-ish queries against long passages;
+  the golden queries here are already long and descriptive, so the prefix mostly adds noise.
+- **Reverted.** The negative result is the deliverable.
+
+**Process note that cost two invalid measurements:** `pkill -f uvicorn` does not kill the
+server on Windows/Git Bash. The replacement process fails to bind port 8000 (exit code 3) and
+the eval silently runs against the *old* code. Always free the port explicitly
+(`Get-NetTCPConnection -LocalPort 8000 | Stop-Process`) and confirm before measuring.
 
 **2.2 — Embed the heading along with the chunk**
 - File: `core/chunking/chunker.py:53`

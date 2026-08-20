@@ -273,3 +273,81 @@ Common improvements:
 - Try different embedding models
 - Add metadata filters
 - Improve query parsing
+
+---
+
+## Current Baseline (2026-08-20)
+
+Committed reports live in `data/eval/baselines/` (the `reports/` directory is gitignored, so
+canonical runs are copied there deliberately).
+
+**Corpus:** 17 documents / 586 chunks, all ≤45 pages (D10), seeded under `golden_user`.
+
+| Family | Docs |
+|---|---|
+| Academic | 8 |
+| Financial | 2 |
+| Career / study | 7 |
+
+**Golden set:** 45 queries, covering all 17 documents.
+factual 11 · definitional 10 · lookup 7 · temporal 7 · comparative 6 · procedural 4.
+All 7 temporal queries verified to parse an actual date range through `parse_query`.
+
+**Results** (`2026-08-20_hnsw_baseline.json`, commit `a2a056b`):
+
+| Metric | Value |
+|---|---|
+| Recall@5 | **0.9444** |
+| Recall@10 | 0.9444 |
+| nDCG@10 | **0.8993** |
+| MRR | **0.9000** |
+| Precision@5 | 0.2578 |
+
+### How to read these — three traps
+
+**1. Precision is capped by the golden set, not by retrieval.** This corpus averages **1.40
+relevant documents per query**, so a query with one relevant document scores at most 0.20 at
+P@5 no matter how perfect the ranking. The theoretical maximum here is:
+
+| | Ceiling | Achieved | % of ceiling |
+|---|---|---|---|
+| Precision@5 | 0.2800 | 0.2578 | **92%** |
+| Precision@10 | 0.1400 | 0.1289 | 92% |
+
+Raw precision on this corpus measures the shape of the golden set. **Do not quote it without
+the ceiling**; quote Recall@5, MRR and nDCG@10 instead.
+
+**2. Recall@5 and Recall@10 are identical** because retrieval is deduplicated to document level
+(see below) and 10 chunks rarely span more than 5 distinct documents. `@10` carries no extra
+information at this corpus size.
+
+**3. Evaluation is document-level.** Relevance is judged per document, and `run_eval`
+deduplicates retrieved documents (first occurrence wins, rank preserved) before computing any
+metric. Chunk-level evaluation was rejected: it requires labelling chunk ids, which churn every
+time chunking parameters change — exactly what Phase 2 does.
+
+### Not yet suitable for external claims
+
+There is **no baseline to compare against yet**. A metric without a baseline is not an
+achievement, and filename search is explicitly *not* a valid baseline — its score is determined
+by how the fixture files happen to be named, so any "N× better" figure would be authored rather
+than measured. BM25 over document content is the comparison being built (Phase 1.4).
+
+### Rejected changes (do not retry)
+
+| Change | Result |
+|---|---|
+| BGE query-instruction prefix on `embed_query` | **Regression**: Recall@5 0.9444 → 0.8944. Report: `2026-08-20_rejected_bge-query-prefix.json` |
+| `fastembed.query_embed()` instead of `embed()` | **No-op**: returns identical vectors (cosine 1.0) for `bge-small-en-v1.5` |
+
+### Measurement procedure
+
+Retrieval changes are measured one at a time, re-seeding between any change that alters what
+gets indexed. Note that **query-side changes need no re-seed**, but **do require restarting the
+API** — and on Windows `pkill -f uvicorn` does not kill it. The replacement silently fails to
+bind port 8000 and the eval runs against stale code, producing identical numbers that look like
+"no effect". Free the port explicitly first:
+
+```powershell
+Get-NetTCPConnection -LocalPort 8000 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+```

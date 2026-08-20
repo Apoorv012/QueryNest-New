@@ -120,3 +120,82 @@ Architecture and technical decisions with rationale.
 - No date parsing (metadata filters only via UI controls): simpler, but loses the "just type it in the search box" ergonomics of combining semantic and date intent in one query.
 
 **Risk:** Regex patterns only cover the phrasings they were written for — an unanticipated phrasing (e.g. "since March") silently falls through to `ParsedQuery(query=query)` with no date filter, rather than erroring. Mitigated by keeping the query text unmodified in that case, so the search simply falls back to pure semantic search instead of failing.
+
+---
+
+## D7: Corpus Scope — Three Document Families, All Digital-Native
+
+**Decision:** The eval corpus spans academic papers, short financial documents, and
+career/study documents (job descriptions, hiring brochures, assignments).
+
+**Why:** "Question papers" were dropped — the available ones are scanned images, and OCR is a
+separate project. `eval.pdf` in the candidate set proved the point: 3 pages, **2 characters of
+extractable text**. Career/study documents replace them: digital-native, genuinely what sits in
+a student's Downloads folder or WhatsApp chat, and structurally varied enough to be
+discriminating.
+
+**Risk:** The career family is thematically narrow — several job descriptions read similarly, so
+queries must be written carefully to be discriminating rather than ambiguous.
+
+---
+
+## D8: Under-Filled Date-Filtered Results Are Backfilled
+
+**Decision:** When a date-filtered search returns fewer than `top_k` results, run a second
+unfiltered search and append the remainder, marked `within_date_range: false`.
+
+**Why:** A date expression in a natural-language query is a hint, not a hard constraint. A user
+who types "insurance policy from last year" and receives 2 results is worse served than one who
+receives those 2 plus 3 near-misses they can judge themselves.
+
+**Risk:** Silently mixing in-range and out-of-range results would make the date filter feel
+broken. Mitigated by the explicit `within_date_range` flag on every result, which the UI must
+render as a visible divider.
+
+---
+
+## D9: Undated Documents Are Not Excluded by Date Filters
+
+**Decision:** Date filters use `(document_date IS NULL OR document_date >= %s)` rather than a
+bare comparison.
+
+**Why:** SQL `NULL >= x` evaluates false, so every document whose date extraction fell through
+to `null` silently disappeared from any date-filtered search. D5 treats `null` as a legitimate
+outcome, so it must not also be a disqualifier. Measured relevance: 7 of the 17 corpus
+documents currently have no detectable date.
+
+---
+
+## D10: Corpus Documents Are Capped at ~45 Pages
+
+**Decision:** No eval-corpus document exceeds ~45 pages.
+
+**Why:** Representativeness — QueryNest targets general public use, and a 344-page annual report
+is not a document its users own. And iteration speed: the excluded documents were 88% of
+extraction cost, and removing them took a full re-seed from ~23 minutes to ~3.5, which is what
+makes per-change retrieval measurement affordable.
+
+**Risk:** The financial family is reduced to two Berkshire filings, which is too thin to support
+a "works on financial documents" claim. Short financial documents (quarterly reports, 10-Q
+filings, fund factsheets) are still needed.
+
+---
+
+## D11: Vector Index — HNSW, Not IVFFlat
+
+**Decision:** Use HNSW for the embedding index.
+
+**Why:** IVFFlat learns its centroids from the rows present at index-build time, and `setup()`
+runs against an empty table. The resulting index was degenerate: with the default
+`ivfflat.probes = 1`, queries returned **zero rows**. HNSW builds incrementally as rows are
+inserted and cannot reach that state. Switching moved Recall@5 from 0.5944 to 0.9444 with no
+other change. Full analysis in `improvements.md`.
+
+**Alternatives considered:**
+- Keep IVFFlat and rebuild the index after ingest: works, but adds a fragile ordering
+  requirement (every bulk load must be followed by a REINDEX) whose omission fails silently.
+- Keep IVFFlat and raise `ivfflat.probes`: restores results but scans most lists, forfeiting the
+  point of the index.
+
+**Risk:** HNSW indexes are slower to build and use more memory than IVFFlat. At personal-library
+scale this is immaterial; revisit only if index build time becomes noticeable.
