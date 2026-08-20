@@ -5,8 +5,16 @@
             "query": "What is the attention mechanism in transformers?",
             "type": "factual",
             "expected_docs": [
-                {"document_filename": "attention_2017", "relevance": 2, "text_contains": "scaled dot-product"},
-                {"document_filename": "bert_2018", "relevance": 1, "text_contains": "attention"}
+                {
+                    "document_filename": "attention_2017",
+                    "relevance": 2,
+                    "text_contains": "scaled dot-product"
+                },
+                {
+                    "document_filename": "bert_2018",
+                    "relevance": 1,
+                    "text_contains": "attention"
+                }
             ],
             "min_relevant": 1
         },
@@ -15,17 +23,16 @@
             "query": "How does BERT pre-training work?",
             "type": "definitional",
             "expected_docs": [
-                {"document_filename": "bert_2018", "relevance": 2, "text_contains": "masked language"},
-                {"document_filename": "bert_2018", "relevance": 2, "text_contains": "next sentence"}
-            ],
-            "min_relevant": 1
-        },
-        {
-            "id": "q3",
-            "query": "What is GPT-3 and how many parameters does it have?",
-            "type": "factual",
-            "expected_docs": [
-                {"document_filename": "gpt3_2020", "relevance": 2, "text_contains": "175 billion"}
+                {
+                    "document_filename": "bert_2018",
+                    "relevance": 2,
+                    "text_contains": "masked language"
+                },
+                {
+                    "document_filename": "bert_2018",
+                    "relevance": 2,
+                    "text_contains": "next sentence"
+                }
             ],
             "min_relevant": 1
         },
@@ -34,8 +41,16 @@
             "query": "How does the Vision Transformer process images?",
             "type": "definitional",
             "expected_docs": [
-                {"document_filename": "vit_2020", "relevance": 2, "text_contains": "patch"},
-                {"document_filename": "vit_2020", "relevance": 1, "text_contains": "embedding"}
+                {
+                    "document_filename": "vit_2020",
+                    "relevance": 2,
+                    "text_contains": "patch"
+                },
+                {
+                    "document_filename": "vit_2020",
+                    "relevance": 1,
+                    "text_contains": "embedding"
+                }
             ],
             "min_relevant": 1
         },
@@ -44,8 +59,16 @@
             "query": "What is Retrieval-Augmented Generation?",
             "type": "definitional",
             "expected_docs": [
-                {"document_filename": "rag_2020", "relevance": 2, "text_contains": "retrieval"},
-                {"document_filename": "rag_2020", "relevance": 2, "text_contains": "generation"}
+                {
+                    "document_filename": "rag_2020",
+                    "relevance": 2,
+                    "text_contains": "retrieval"
+                },
+                {
+                    "document_filename": "rag_2020",
+                    "relevance": 2,
+                    "text_contains": "generation"
+                }
             ],
             "min_relevant": 1
         },
@@ -54,8 +77,16 @@
             "query": "What is chain of thought prompting?",
             "type": "definitional",
             "expected_docs": [
-                {"document_filename": "chain_of_thought_2022", "relevance": 2, "text_contains": "chain of thought"},
-                {"document_filename": "chain_of_thought_2022", "relevance": 1, "text_contains": "reasoning"}
+                {
+                    "document_filename": "chain_of_thought_2022",
+                    "relevance": 2,
+                    "text_contains": "chain of thought"
+                },
+                {
+                    "document_filename": "chain_of_thought_2022",
+                    "relevance": 1,
+                    "text_contains": "reasoning"
+                }
             ],
             "min_relevant": 1
         },
@@ -64,8 +95,16 @@
             "query": "What is LLaMA and what datasets was it trained on?",
             "type": "factual",
             "expected_docs": [
-                {"document_filename": "llama_2023", "relevance": 2, "text_contains": "LLaMA"},
-                {"document_filename": "llama_2023", "relevance": 1, "text_contains": "CommonCrawl"}
+                {
+                    "document_filename": "llama_2023",
+                    "relevance": 2,
+                    "text_contains": "LLaMA"
+                },
+                {
+                    "document_filename": "llama_2023",
+                    "relevance": 1,
+                    "text_contains": "CommonCrawl"
+                }
             ],
             "min_relevant": 1
         },
@@ -74,8 +113,16 @@
             "query": "How does the mixture of experts architecture work?",
             "type": "definitional",
             "expected_docs": [
-                {"document_filename": "mixture_of_experts_2024", "relevance": 2, "text_contains": "expert"},
-                {"document_filename": "mixture_of_experts_2024", "relevance": 1, "text_contains": "router"}
+                {
+                    "document_filename": "mixture_of_experts_2024",
+                    "relevance": 2,
+                    "text_contains": "expert"
+                },
+                {
+                    "document_filename": "mixture_of_experts_2024",
+                    "relevance": 1,
+                    "text_contains": "router"
+                }
             ],
             "min_relevant": 1
         },
@@ -84,8 +131,16 @@
             "query": "Compare attention mechanisms in transformers vs RNNs",
             "type": "comparative",
             "expected_docs": [
-                {"document_filename": "attention_2017", "relevance": 2, "text_contains": "attention"},
-                {"document_filename": "bert_2018", "relevance": 1, "text_contains": "self-attention"}
+                {
+                    "document_filename": "attention_2017",
+                    "relevance": 2,
+                    "text_contains": "attention"
+                },
+                {
+                    "document_filename": "bert_2018",
+                    "relevance": 1,
+                    "text_contains": "self-attention"
+                }
             ],
             "min_relevant": 1
         },
@@ -94,8 +149,11 @@
             "query": "What is the difference between BERT and GPT?",
             "type": "comparative",
             "expected_docs": [
-                {"document_filename": "bert_2018", "relevance": 2, "text_contains": "encoder"},
-                {"document_filename": "gpt3_2020", "relevance": 2, "text_contains": "decoder"}
+                {
+                    "document_filename": "bert_2018",
+                    "relevance": 2,
+                    "text_contains": "encoder"
+                }
             ],
             "min_relevant": 1
         },
@@ -104,38 +162,11 @@
             "query": "What is Berkshire Hathaway's operating revenue for 2023?",
             "type": "factual",
             "expected_docs": [
-                {"document_filename": "berkshire_2023", "relevance": 2, "text_contains": "revenue"},
-                {"document_filename": "berkshire_2024", "relevance": 1, "text_contains": "2023"}
-            ],
-            "min_relevant": 1
-        },
-        {
-            "id": "q12",
-            "query": "What are GSK's key products and therapeutic areas?",
-            "type": "lookup",
-            "expected_docs": [
-                {"document_filename": "gsk_2024", "relevance": 2, "text_contains": "vaccines"},
-                {"document_filename": "gsk_2024", "relevance": 1, "text_contains": "specialty"}
-            ],
-            "min_relevant": 1
-        },
-        {
-            "id": "q13",
-            "query": "What was Unilever's net profit margin in 2024?",
-            "type": "factual",
-            "expected_docs": [
-                {"document_filename": "unilever_2024", "relevance": 2, "text_contains": "net profit"},
-                {"document_filename": "unilever_2024", "relevance": 1, "text_contains": "margin"}
-            ],
-            "min_relevant": 1
-        },
-        {
-            "id": "q14",
-            "query": "What is PPL's capital expenditure plan?",
-            "type": "factual",
-            "expected_docs": [
-                {"document_filename": "ppl_2024", "relevance": 2, "text_contains": "capital"},
-                {"document_filename": "ppl_2024", "relevance": 1, "text_contains": "investment"}
+                {
+                    "document_filename": "berkshire_2023",
+                    "relevance": 2,
+                    "text_contains": "revenue"
+                }
             ],
             "min_relevant": 1
         },
@@ -144,9 +175,16 @@
             "query": "Compare Berkshire Hathaway's performance across 2022, 2023, and 2024",
             "type": "comparative",
             "expected_docs": [
-                {"document_filename": "berkshire_2022", "relevance": 2, "text_contains": "2022"},
-                {"document_filename": "berkshire_2023", "relevance": 2, "text_contains": "2023"},
-                {"document_filename": "berkshire_2024", "relevance": 2, "text_contains": "2024"}
+                {
+                    "document_filename": "berkshire_2022",
+                    "relevance": 2,
+                    "text_contains": "2022"
+                },
+                {
+                    "document_filename": "berkshire_2023",
+                    "relevance": 2,
+                    "text_contains": "2023"
+                }
             ],
             "min_relevant": 2
         },
@@ -155,8 +193,11 @@
             "query": "What scaling laws apply to large language models?",
             "type": "definitional",
             "expected_docs": [
-                {"document_filename": "llama_2023", "relevance": 2, "text_contains": "scaling"},
-                {"document_filename": "gpt3_2020", "relevance": 1, "text_contains": "scaling"}
+                {
+                    "document_filename": "llama_2023",
+                    "relevance": 2,
+                    "text_contains": "scaling"
+                }
             ],
             "min_relevant": 1
         },
@@ -165,8 +206,16 @@
             "query": "How do transformers handle long sequences?",
             "type": "procedural",
             "expected_docs": [
-                {"document_filename": "attention_2017", "relevance": 2, "text_contains": "complexity"},
-                {"document_filename": "mixture_of_experts_2024", "relevance": 1, "text_contains": "sequence"}
+                {
+                    "document_filename": "attention_2017",
+                    "relevance": 2,
+                    "text_contains": "complexity"
+                },
+                {
+                    "document_filename": "mixture_of_experts_2024",
+                    "relevance": 1,
+                    "text_contains": "sequence"
+                }
             ],
             "min_relevant": 1
         },
@@ -175,8 +224,11 @@
             "query": "What is the role of pre-training in NLP models?",
             "type": "definitional",
             "expected_docs": [
-                {"document_filename": "bert_2018", "relevance": 2, "text_contains": "pre-training"},
-                {"document_filename": "gpt3_2020", "relevance": 2, "text_contains": "pre-trained"}
+                {
+                    "document_filename": "bert_2018",
+                    "relevance": 2,
+                    "text_contains": "pre-training"
+                }
             ],
             "min_relevant": 1
         },
@@ -185,8 +237,16 @@
             "query": "How does Retrieval-Augmented Generation improve factual accuracy?",
             "type": "procedural",
             "expected_docs": [
-                {"document_filename": "rag_2020", "relevance": 2, "text_contains": "factual"},
-                {"document_filename": "rag_2020", "relevance": 1, "text_contains": "knowledge"}
+                {
+                    "document_filename": "rag_2020",
+                    "relevance": 2,
+                    "text_contains": "factual"
+                },
+                {
+                    "document_filename": "rag_2020",
+                    "relevance": 1,
+                    "text_contains": "knowledge"
+                }
             ],
             "min_relevant": 1
         },
@@ -195,8 +255,16 @@
             "query": "What are the advantages of Vision Transformers over CNNs?",
             "type": "comparative",
             "expected_docs": [
-                {"document_filename": "vit_2020", "relevance": 2, "text_contains": "CNN"},
-                {"document_filename": "vit_2020", "relevance": 1, "text_contains": "pre-training"}
+                {
+                    "document_filename": "vit_2020",
+                    "relevance": 2,
+                    "text_contains": "CNN"
+                },
+                {
+                    "document_filename": "vit_2020",
+                    "relevance": 1,
+                    "text_contains": "pre-training"
+                }
             ],
             "min_relevant": 1
         },
@@ -205,8 +273,16 @@
             "query": "What is Berkshire Hathaway's investment philosophy according to Warren Buffett?",
             "type": "lookup",
             "expected_docs": [
-                {"document_filename": "berkshire_2022", "relevance": 2, "text_contains": "Buffett"},
-                {"document_filename": "berkshire_2023", "relevance": 1, "text_contains": "investment"}
+                {
+                    "document_filename": "berkshire_2022",
+                    "relevance": 2,
+                    "text_contains": "Buffett"
+                },
+                {
+                    "document_filename": "berkshire_2023",
+                    "relevance": 1,
+                    "text_contains": "investment"
+                }
             ],
             "min_relevant": 1
         },
@@ -215,8 +291,16 @@
             "query": "How does chain of thought prompting improve mathematical reasoning?",
             "type": "factual",
             "expected_docs": [
-                {"document_filename": "chain_of_thought_2022", "relevance": 2, "text_contains": "math"},
-                {"document_filename": "chain_of_thought_2022", "relevance": 1, "text_contains": "reasoning"}
+                {
+                    "document_filename": "chain_of_thought_2022",
+                    "relevance": 2,
+                    "text_contains": "math"
+                },
+                {
+                    "document_filename": "chain_of_thought_2022",
+                    "relevance": 1,
+                    "text_contains": "reasoning"
+                }
             ],
             "min_relevant": 1
         },
@@ -225,38 +309,16 @@
             "query": "What is the Mixture of Experts routing mechanism?",
             "type": "factual",
             "expected_docs": [
-                {"document_filename": "mixture_of_experts_2024", "relevance": 2, "text_contains": "router"},
-                {"document_filename": "mixture_of_experts_2024", "relevance": 1, "text_contains": "expert"}
-            ],
-            "min_relevant": 1
-        },
-        {
-            "id": "q24",
-            "query": "What are the environmental commitments of GSK?",
-            "type": "lookup",
-            "expected_docs": [
-                {"document_filename": "gsk_2024", "relevance": 2, "text_contains": "environment"},
-                {"document_filename": "gsk_2024", "relevance": 1, "text_contains": "sustainability"}
-            ],
-            "min_relevant": 1
-        },
-        {
-            "id": "q25",
-            "query": "How does PPL manage climate risk in its operations?",
-            "type": "lookup",
-            "expected_docs": [
-                {"document_filename": "ppl_2024", "relevance": 2, "text_contains": "climate"},
-                {"document_filename": "ppl_2024", "relevance": 1, "text_contains": "risk"}
-            ],
-            "min_relevant": 1
-        },
-        {
-            "id": "q26",
-            "query": "What is few-shot learning in large language models?",
-            "type": "definitional",
-            "expected_docs": [
-                {"document_filename": "gpt3_2020", "relevance": 2, "text_contains": "few-shot"},
-                {"document_filename": "gpt3_2020", "relevance": 1, "text_contains": "in-context"}
+                {
+                    "document_filename": "mixture_of_experts_2024",
+                    "relevance": 2,
+                    "text_contains": "router"
+                },
+                {
+                    "document_filename": "mixture_of_experts_2024",
+                    "relevance": 1,
+                    "text_contains": "expert"
+                }
             ],
             "min_relevant": 1
         },
@@ -265,18 +327,16 @@
             "query": "How does positional encoding work in transformers?",
             "type": "factual",
             "expected_docs": [
-                {"document_filename": "attention_2017", "relevance": 2, "text_contains": "positional"},
-                {"document_filename": "attention_2017", "relevance": 1, "text_contains": "encoding"}
-            ],
-            "min_relevant": 1
-        },
-        {
-            "id": "q28",
-            "query": "What is Unilever's sustainable living plan?",
-            "type": "lookup",
-            "expected_docs": [
-                {"document_filename": "unilever_2024", "relevance": 2, "text_contains": "sustainable"},
-                {"document_filename": "unilever_2024", "relevance": 1, "text_contains": "plan"}
+                {
+                    "document_filename": "attention_2017",
+                    "relevance": 2,
+                    "text_contains": "positional"
+                },
+                {
+                    "document_filename": "attention_2017",
+                    "relevance": 1,
+                    "text_contains": "encoding"
+                }
             ],
             "min_relevant": 1
         },
@@ -285,18 +345,351 @@
             "query": "Compare the training approaches of BERT and GPT-3",
             "type": "comparative",
             "expected_docs": [
-                {"document_filename": "bert_2018", "relevance": 2, "text_contains": "masked"},
-                {"document_filename": "gpt3_2020", "relevance": 2, "text_contains": "autoregressive"}
+                {
+                    "document_filename": "bert_2018",
+                    "relevance": 2,
+                    "text_contains": "masked"
+                }
             ],
             "min_relevant": 1
         },
         {
-            "id": "q30",
-            "query": "What is the cash position of Berkshire Hathaway at end of 2024?",
+            "id": "q31",
+            "query": "internship that needs Docker and Kubernetes experience",
+            "type": "lookup",
+            "expected_docs": [
+                {
+                    "document_filename": "DevOps_Engineer_Intern",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "Sprinklr JD - Cloud Engg -Campus Hiring",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q32",
+            "query": "which role asks for AWS and Jenkins CI/CD skills",
+            "type": "lookup",
+            "expected_docs": [
+                {
+                    "document_filename": "DevOps_Engineer_Intern",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "Sprinklr JD - Cloud Engg -Campus Hiring",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q33",
+            "query": "cloud engineering job working across multiple cloud providers",
+            "type": "lookup",
+            "expected_docs": [
+                {
+                    "document_filename": "Sprinklr JD - Cloud Engg -Campus Hiring",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "DevOps_Engineer_Intern",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q34",
+            "query": "company building a unified customer experience management platform",
             "type": "factual",
             "expected_docs": [
-                {"document_filename": "berkshire_2024", "relevance": 2, "text_contains": "cash"},
-                {"document_filename": "berkshire_2024", "relevance": 1, "text_contains": "billion"}
+                {
+                    "document_filename": "Sprinklr JD - Cloud Engg -Campus Hiring",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q35",
+            "query": "company working on identity verification and fraud prevention",
+            "type": "factual",
+            "expected_docs": [
+                {
+                    "document_filename": "Hyperverge SDE Intern JD",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q36",
+            "query": "internship at an AI company doing automated ID checks",
+            "type": "lookup",
+            "expected_docs": [
+                {
+                    "document_filename": "Hyperverge SDE Intern JD",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q37",
+            "query": "payments company that helped build UPI infrastructure",
+            "type": "factual",
+            "expected_docs": [
+                {
+                    "document_filename": "New_SDE JD (1) (3) (1)",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q38",
+            "query": "job at a fintech processing digital transactions in India",
+            "type": "lookup",
+            "expected_docs": [
+                {
+                    "document_filename": "New_SDE JD (1) (3) (1)",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "Hyperverge SDE Intern JD",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q39",
+            "query": "campus placement process with aptitude and technical interview rounds",
+            "type": "procedural",
+            "expected_docs": [
+                {
+                    "document_filename": "Campus hiring 2027_Student brochure",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q40",
+            "query": "graduate trainee program with no service bond",
+            "type": "factual",
+            "expected_docs": [
+                {
+                    "document_filename": "Campus hiring 2027_Student brochure",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q41",
+            "query": "KV cache checkpointing to recover from an Android process kill",
+            "type": "definitional",
+            "expected_docs": [
+                {
+                    "document_filename": "Sarvam - Inference Pipeline Assignment",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "Sarvam Inference Pipeline Assignment",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q42",
+            "query": "assignment questions on on-device inference edge cases",
+            "type": "lookup",
+            "expected_docs": [
+                {
+                    "document_filename": "Sarvam Inference Pipeline Assignment",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "Sarvam - Inference Pipeline Assignment",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q43",
+            "query": "detecting NPU driver incompatibility after a firmware update",
+            "type": "procedural",
+            "expected_docs": [
+                {
+                    "document_filename": "Sarvam Inference Pipeline Assignment",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "Sarvam - Inference Pipeline Assignment",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q44",
+            "query": "running the same model binary on heterogeneous hardware",
+            "type": "definitional",
+            "expected_docs": [
+                {
+                    "document_filename": "Sarvam Inference Pipeline Assignment",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "Sarvam - Inference Pipeline Assignment",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q45",
+            "query": "machine learning calibration of low-cost air quality sensors",
+            "type": "definitional",
+            "expected_docs": [
+                {
+                    "document_filename": "sensors-25-03183",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q46",
+            "query": "IoT system for monitoring PM2.5 and CO2 levels",
+            "type": "factual",
+            "expected_docs": [
+                {
+                    "document_filename": "sensors-25-03183",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q47",
+            "query": "comparing regression algorithms to improve sensor accuracy",
+            "type": "comparative",
+            "expected_docs": [
+                {
+                    "document_filename": "sensors-25-03183",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q48",
+            "query": "transformer papers before 2020",
+            "type": "temporal",
+            "expected_docs": [
+                {
+                    "document_filename": "attention_2017",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "bert_2018",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q49",
+            "query": "attention mechanism paper in 2017",
+            "type": "temporal",
+            "expected_docs": [
+                {
+                    "document_filename": "attention_2017",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q50",
+            "query": "language model research from 2020 to 2023",
+            "type": "temporal",
+            "expected_docs": [
+                {
+                    "document_filename": "rag_2020",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "vit_2020",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "chain_of_thought_2022",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "llama_2023",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q51",
+            "query": "Berkshire Hathaway shareholder letter in 2022",
+            "type": "temporal",
+            "expected_docs": [
+                {
+                    "document_filename": "berkshire_2022",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q52",
+            "query": "annual report in 2023",
+            "type": "temporal",
+            "expected_docs": [
+                {
+                    "document_filename": "berkshire_2023",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q53",
+            "query": "research published after 2023",
+            "type": "temporal",
+            "expected_docs": [
+                {
+                    "document_filename": "mixture_of_experts_2024",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "sensors-25-03183",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q54",
+            "query": "air quality study in 2025",
+            "type": "temporal",
+            "expected_docs": [
+                {
+                    "document_filename": "sensors-25-03183",
+                    "relevance": 2
+                }
             ],
             "min_relevant": 1
         }

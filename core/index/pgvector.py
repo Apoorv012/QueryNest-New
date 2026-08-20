@@ -60,10 +60,18 @@ class PgVectorStore(VectorStore):
                         created_at      TIMESTAMP DEFAULT NOW()
                     )
                 """)
+                # HNSW, not IVFFlat. IVFFlat learns its centroids from the rows
+                # present when the index is built — and setup() runs against an
+                # empty table, so the lists were never trained. With the default
+                # ivfflat.probes = 1 a query then scans one degenerate list and
+                # routinely returns ZERO rows (measured: 0 results by default,
+                # 10 with probes=100, 10 on an exact scan). HNSW builds its graph
+                # incrementally as rows are inserted, so it needs no training
+                # pass and cannot end up in that state.
+                cur.execute("DROP INDEX IF EXISTS idx_chunks_embedding")
                 cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_chunks_embedding
-                    ON chunks USING ivfflat (embedding vector_cosine_ops)
-                    WITH (lists = 100)
+                    CREATE INDEX IF NOT EXISTS idx_chunks_embedding_hnsw
+                    ON chunks USING hnsw (embedding vector_cosine_ops)
                 """)
                 cur.execute("""
                     CREATE INDEX IF NOT EXISTS idx_chunks_user_id

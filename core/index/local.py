@@ -25,6 +25,6 @@ class LocalPgVectorStore(PgVectorStore):
             raise RuntimeError(
                 f"{LOCAL_DATABASE_URL_VAR} not set. "
                 "Set it to your local Postgres connection string, e.g. "
-                "postgresql://querynest:querynest@localhost:5432/querynest"
+                "postgresql://querynest:querynest@localhost:5433/querynest"
             )
         super().__init__(connection_string=cs)

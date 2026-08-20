@@ -16,6 +16,19 @@ GOLDEN_USER = "golden_user"
 EVAL_DIR = Path("data/eval/pdfs")
 
 
+def _eval_pdf_paths() -> list[Path]:
+    """The eval corpus, in one canonical order.
+
+    Both the endpoint (which creates the job's file list) and the worker
+    (which reports per-file status by index) must walk the corpus in exactly
+    the same order. They previously sorted differently — the endpoint by
+    `p.name`, the worker by full path — so once the corpus had
+    subdirectories the two orders diverged and every status update was
+    recorded against the wrong file.
+    """
+    return sorted(EVAL_DIR.rglob("*.pdf"))
+
+
 def _seed_worker(job: Job) -> None:
     from core.chunking.chunker import chunk_document
     from core.embedding import FastEmbedEmbedder
@@ -28,9 +41,7 @@ def _seed_worker(job: Job) -> None:
 
     store.delete_all_for_user(GOLDEN_USER)
 
-    pdf_files = sorted(
-        p for p in EVAL_DIR.rglob("*.pdf")
-    )
+    pdf_files = _eval_pdf_paths()
 
     for i, pdf_path in enumerate(pdf_files):
         filename = pdf_path.name
@@ -89,7 +100,7 @@ def seed_golden_set(background_tasks: BackgroundTasks):
     if not _has_pgvector:
         return {"error": "Requires database. Set QUERYNEST_DATABASE_URL."}
 
-    pdf_files = sorted(p.name for p in EVAL_DIR.rglob("*.pdf"))
+    pdf_files = [p.name for p in _eval_pdf_paths()]
     if not pdf_files:
         return {"error": f"No PDFs found in {EVAL_DIR}"}
 
