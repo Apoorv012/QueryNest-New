@@ -1,0 +1,532 @@
+{
+    "queries": [
+        {
+            "id": "p1",
+            "query": "the paper that let every word look at every other word instead of reading in order",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "attention_2017",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p2",
+            "query": "which architecture threw out recurrence and convolutions completely",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "attention_2017",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p3",
+            "query": "that famous google paper that changed how language models are built",
+            "type": "vague",
+            "expected_docs": [
+                {
+                    "document_filename": "attention_2017",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "bert_2018",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p4",
+            "query": "the model trained by hiding random words and making it guess them",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "bert_2018",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p5",
+            "query": "understanding a sentence by reading it forwards and backwards at once",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "bert_2018",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p6",
+            "query": "making the model show its working before giving an answer",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "chain_of_thought_2022",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p7",
+            "query": "why writing out intermediate steps helps with maths word problems",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "chain_of_thought_2022",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p8",
+            "query": "open weight models trained only on data anyone can download",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "llama_2023",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p9",
+            "query": "meta's family of freely released foundation models",
+            "type": "vague",
+            "expected_docs": [
+                {
+                    "document_filename": "llama_2023",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p10",
+            "query": "only switching on part of the network for each input to save compute",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "mixture_of_experts_2024",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p11",
+            "query": "splitting a model into specialists and picking a few per token",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "mixture_of_experts_2024",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p12",
+            "query": "looking things up in documents first so the model makes fewer things up",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "rag_2020",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p13",
+            "query": "letting a model consult an outside knowledge source before answering",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "rag_2020",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p14",
+            "query": "treating pictures as sequences of little squares instead of using filters",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "vit_2020",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p15",
+            "query": "applying a text model architecture to recognising images",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "vit_2020",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p16",
+            "query": "correcting cheap environmental monitoring hardware with regression models",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "sensors-25-03183",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p17",
+            "query": "making inexpensive pollution measuring devices more accurate",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "sensors-25-03183",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p18",
+            "query": "that study about dust and gas readings from hobby grade equipment",
+            "type": "vague",
+            "expected_docs": [
+                {
+                    "document_filename": "sensors-25-03183",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p19",
+            "query": "warren buffett's yearly note to the people who own the company",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "berkshire_2022",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "berkshire_2023",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p20",
+            "query": "the conglomerate's write up on its insurance and railway businesses",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "berkshire_2022",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "berkshire_2023",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p21",
+            "query": "that investor letter about buying good businesses and holding them",
+            "type": "vague",
+            "expected_docs": [
+                {
+                    "document_filename": "berkshire_2022",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "berkshire_2023",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p22",
+            "query": "the internship about keeping servers running and automating releases",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "DevOps_Engineer_Intern",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p23",
+            "query": "trainee role for someone who likes shell scripting and deployment pipelines",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "DevOps_Engineer_Intern",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p24",
+            "query": "the company that checks whether someone's ID document is genuine",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "Hyperverge SDE Intern JD",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p25",
+            "query": "startup stopping fake account signups for banks",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "Hyperverge SDE Intern JD",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p26",
+            "query": "company that moves money between banks and online shops",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "New_SDE JD (1) (3) (1)",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p27",
+            "query": "the place that helped build india's phone based money transfer system",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "New_SDE JD (1) (3) (1)",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p28",
+            "query": "software big brands use to handle all their social media and support channels",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "Sprinklr JD - Cloud Engg -Campus Hiring",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p29",
+            "query": "that role about running systems across several hosting providers",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "Sprinklr JD - Cloud Engg -Campus Hiring",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "DevOps_Engineer_Intern",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p30",
+            "query": "the booklet explaining how they pick students from colleges",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "Campus hiring 2027_Student brochure",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p31",
+            "query": "what the stages are before you get an offer letter as a fresher",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "Campus hiring 2027_Student brochure",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p32",
+            "query": "the take home task about running AI models on phones and laptops",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "Sarvam Inference Pipeline Assignment",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "Sarvam - Inference Pipeline Assignment",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p33",
+            "query": "questions they asked me about handling flaky on device hardware",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "Sarvam Inference Pipeline Assignment",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "Sarvam - Inference Pipeline Assignment",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p34",
+            "query": "my write up on recovering when the phone shuts down the model",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "Sarvam - Inference Pipeline Assignment",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "Sarvam Inference Pipeline Assignment",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p35",
+            "query": "what i submitted about saving progress so work isn't lost on a crash",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "Sarvam - Inference Pipeline Assignment",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p36",
+            "query": "something explaining how machines learn to understand written language",
+            "type": "vague",
+            "expected_docs": [
+                {
+                    "document_filename": "attention_2017",
+                    "relevance": 1
+                },
+                {
+                    "document_filename": "bert_2018",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p37",
+            "query": "a job description involving containers and automated testing",
+            "type": "vague",
+            "expected_docs": [
+                {
+                    "document_filename": "DevOps_Engineer_Intern",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "Sprinklr JD - Cloud Engg -Campus Hiring",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p38",
+            "query": "research about spotting patterns in readings from physical devices",
+            "type": "vague",
+            "expected_docs": [
+                {
+                    "document_filename": "sensors-25-03183",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p39",
+            "query": "the document about how a business made money last year",
+            "type": "vague",
+            "expected_docs": [
+                {
+                    "document_filename": "berkshire_2022",
+                    "relevance": 1
+                },
+                {
+                    "document_filename": "berkshire_2023",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p40",
+            "query": "papers about making big models cheaper to run",
+            "type": "vague",
+            "expected_docs": [
+                {
+                    "document_filename": "mixture_of_experts_2024",
+                    "relevance": 2
+                },
+                {
+                    "document_filename": "llama_2023",
+                    "relevance": 1
+                }
+            ],
+            "min_relevant": 1
+        }
+    ]
+}

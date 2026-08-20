@@ -1,0 +1,485 @@
+{
+  "timestamp": "20260820_194953",
+  "git_commit": "a2a056b",
+  "total_queries": 45,
+  "metrics": {
+    "precision_at_5": 0.1556,
+    "precision_at_10": 0.0778,
+    "recall_at_5": 0.5944,
+    "recall_at_10": 0.5944,
+    "ndcg_at_10": 0.5495,
+    "mrr": 0.5852
+  },
+  "latency_ms_avg": 2091.4,
+  "by_type": {
+    "comparative": {
+      "count": 6,
+      "precision_at_5": 0.1667,
+      "recall_at_10": 0.6667
+    },
+    "definitional": {
+      "count": 10,
+      "precision_at_5": 0.12,
+      "recall_at_10": 0.6
+    },
+    "factual": {
+      "count": 11,
+      "precision_at_5": 0.1273,
+      "recall_at_10": 0.5909
+    },
+    "lookup": {
+      "count": 7,
+      "precision_at_5": 0.1714,
+      "recall_at_10": 0.5
+    },
+    "procedural": {
+      "count": 4,
+      "precision_at_5": 0.1,
+      "recall_at_10": 0.375
+    },
+    "temporal": {
+      "count": 7,
+      "precision_at_5": 0.2571,
+      "recall_at_10": 0.75
+    }
+  },
+  "worst_queries": [
+    {
+      "query_id": "q8",
+      "query": "How does the mixture of experts architecture work?",
+      "mrr": 0.0,
+      "precision_at_5": 0.0
+    },
+    {
+      "query_id": "q10",
+      "query": "What is the difference between BERT and GPT?",
+      "mrr": 0.0,
+      "precision_at_5": 0.0
+    },
+    {
+      "query_id": "q15",
+      "query": "Compare Berkshire Hathaway's performance across 2022, 2023, and 2024",
+      "mrr": 0.0,
+      "precision_at_5": 0.0
+    },
+    {
+      "query_id": "q16",
+      "query": "What scaling laws apply to large language models?",
+      "mrr": 0.0,
+      "precision_at_5": 0.0
+    },
+    {
+      "query_id": "q17",
+      "query": "How do transformers handle long sequences?",
+      "mrr": 0.0,
+      "precision_at_5": 0.0
+    }
+  ],
+  "query_results": [
+    {
+      "query_id": "q1",
+      "query": "What is the attention mechanism in transformers?",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 0.5,
+      "mrr": 1.0,
+      "latency_ms": 2909.3
+    },
+    {
+      "query_id": "q2",
+      "query": "How does BERT pre-training work?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2048.3
+    },
+    {
+      "query_id": "q4",
+      "query": "How does the Vision Transformer process images?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2057.8
+    },
+    {
+      "query_id": "q5",
+      "query": "What is Retrieval-Augmented Generation?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2067.0
+    },
+    {
+      "query_id": "q6",
+      "query": "What is chain of thought prompting?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2062.1
+    },
+    {
+      "query_id": "q7",
+      "query": "What is LLaMA and what datasets was it trained on?",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2085.0
+    },
+    {
+      "query_id": "q8",
+      "query": "How does the mixture of experts architecture work?",
+      "type": "definitional",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2074.9
+    },
+    {
+      "query_id": "q9",
+      "query": "Compare attention mechanisms in transformers vs RNNs",
+      "type": "comparative",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2095.9
+    },
+    {
+      "query_id": "q10",
+      "query": "What is the difference between BERT and GPT?",
+      "type": "comparative",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2070.5
+    },
+    {
+      "query_id": "q11",
+      "query": "What is Berkshire Hathaway's operating revenue for 2023?",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 0.5,
+      "latency_ms": 2090.6
+    },
+    {
+      "query_id": "q15",
+      "query": "Compare Berkshire Hathaway's performance across 2022, 2023, and 2024",
+      "type": "comparative",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2067.7
+    },
+    {
+      "query_id": "q16",
+      "query": "What scaling laws apply to large language models?",
+      "type": "definitional",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2072.1
+    },
+    {
+      "query_id": "q17",
+      "query": "How do transformers handle long sequences?",
+      "type": "procedural",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2067.2
+    },
+    {
+      "query_id": "q18",
+      "query": "What is the role of pre-training in NLP models?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2080.9
+    },
+    {
+      "query_id": "q19",
+      "query": "How does Retrieval-Augmented Generation improve factual accuracy?",
+      "type": "procedural",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2076.0
+    },
+    {
+      "query_id": "q20",
+      "query": "What are the advantages of Vision Transformers over CNNs?",
+      "type": "comparative",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2081.6
+    },
+    {
+      "query_id": "q21",
+      "query": "What is Berkshire Hathaway's investment philosophy according to Warren Buffett?",
+      "type": "lookup",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2100.8
+    },
+    {
+      "query_id": "q22",
+      "query": "How does chain of thought prompting improve mathematical reasoning?",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2064.1
+    },
+    {
+      "query_id": "q23",
+      "query": "What is the Mixture of Experts routing mechanism?",
+      "type": "factual",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2069.4
+    },
+    {
+      "query_id": "q27",
+      "query": "How does positional encoding work in transformers?",
+      "type": "factual",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2103.6
+    },
+    {
+      "query_id": "q29",
+      "query": "Compare the training approaches of BERT and GPT-3",
+      "type": "comparative",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2067.0
+    },
+    {
+      "query_id": "q31",
+      "query": "internship that needs Docker and Kubernetes experience",
+      "type": "lookup",
+      "precision_at_5": 0.2,
+      "recall_at_10": 0.5,
+      "mrr": 0.5,
+      "latency_ms": 2070.0
+    },
+    {
+      "query_id": "q32",
+      "query": "which role asks for AWS and Jenkins CI/CD skills",
+      "type": "lookup",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2080.5
+    },
+    {
+      "query_id": "q33",
+      "query": "cloud engineering job working across multiple cloud providers",
+      "type": "lookup",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2061.1
+    },
+    {
+      "query_id": "q34",
+      "query": "company building a unified customer experience management platform",
+      "type": "factual",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2062.0
+    },
+    {
+      "query_id": "q35",
+      "query": "company working on identity verification and fraud prevention",
+      "type": "factual",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2088.1
+    },
+    {
+      "query_id": "q36",
+      "query": "internship at an AI company doing automated ID checks",
+      "type": "lookup",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 0.3333,
+      "latency_ms": 2067.3
+    },
+    {
+      "query_id": "q37",
+      "query": "payments company that helped build UPI infrastructure",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2049.5
+    },
+    {
+      "query_id": "q38",
+      "query": "job at a fintech processing digital transactions in India",
+      "type": "lookup",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2080.5
+    },
+    {
+      "query_id": "q39",
+      "query": "campus placement process with aptitude and technical interview rounds",
+      "type": "procedural",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2051.3
+    },
+    {
+      "query_id": "q40",
+      "query": "graduate trainee program with no service bond",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2076.8
+    },
+    {
+      "query_id": "q41",
+      "query": "KV cache checkpointing to recover from an Android process kill",
+      "type": "definitional",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2067.8
+    },
+    {
+      "query_id": "q42",
+      "query": "assignment questions on on-device inference edge cases",
+      "type": "lookup",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2056.5
+    },
+    {
+      "query_id": "q43",
+      "query": "detecting NPU driver incompatibility after a firmware update",
+      "type": "procedural",
+      "precision_at_5": 0.2,
+      "recall_at_10": 0.5,
+      "mrr": 1.0,
+      "latency_ms": 2049.9
+    },
+    {
+      "query_id": "q44",
+      "query": "running the same model binary on heterogeneous hardware",
+      "type": "definitional",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2082.2
+    },
+    {
+      "query_id": "q45",
+      "query": "machine learning calibration of low-cost air quality sensors",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2058.2
+    },
+    {
+      "query_id": "q46",
+      "query": "IoT system for monitoring PM2.5 and CO2 levels",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2103.2
+    },
+    {
+      "query_id": "q47",
+      "query": "comparing regression algorithms to improve sensor accuracy",
+      "type": "comparative",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2067.9
+    },
+    {
+      "query_id": "q48",
+      "query": "transformer papers before 2020",
+      "type": "temporal",
+      "precision_at_5": 0.2,
+      "recall_at_10": 0.5,
+      "mrr": 0.5,
+      "latency_ms": 2081.3
+    },
+    {
+      "query_id": "q49",
+      "query": "attention mechanism paper in 2017",
+      "type": "temporal",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2091.5
+    },
+    {
+      "query_id": "q50",
+      "query": "language model research from 2020 to 2023",
+      "type": "temporal",
+      "precision_at_5": 0.6,
+      "recall_at_10": 0.75,
+      "mrr": 1.0,
+      "latency_ms": 2076.9
+    },
+    {
+      "query_id": "q51",
+      "query": "Berkshire Hathaway shareholder letter in 2022",
+      "type": "temporal",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2082.5
+    },
+    {
+      "query_id": "q52",
+      "query": "annual report in 2023",
+      "type": "temporal",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 2040.7
+    },
+    {
+      "query_id": "q53",
+      "query": "research published after 2023",
+      "type": "temporal",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 0.5,
+      "latency_ms": 2075.8
+    },
+    {
+      "query_id": "q54",
+      "query": "air quality study in 2025",
+      "type": "temporal",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 2081.9
+    }
+  ]
+}
