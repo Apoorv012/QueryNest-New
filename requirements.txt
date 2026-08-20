@@ -2,6 +2,7 @@ pymupdf4llm
 pytest
 fastembed
 fastapi
+httpx2
 uvicorn
 python-multipart
 psycopg2-binary
