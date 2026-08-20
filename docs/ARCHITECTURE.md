@@ -16,7 +16,7 @@ QueryNest transforms raw PDFs into searchable, semantically indexed chunks. The 
 ## Current Pipeline
 
 ```
-PDF → pymupdf4llm → ExtractedDocument → chunker → List[Chunk]
+PDF → pymupdf4llm → ExtractedDocument → chunker → List[Chunk] → fastembed → VectorStore
 ```
 
 ### Stage 1: Extraction
@@ -47,6 +47,44 @@ Groups consecutive blocks into semantically coherent chunks:
 
 **Input**: `ExtractedDocument`
 **Output**: `List[Chunk]`
+
+### Stage 3: Embedding
+
+**Module**: `core/embedding/`
+
+Turns chunk text into dense vectors for semantic search:
+
+- `base.py`: `BaseEmbedder` ABC — `embed(texts, batch_size) -> np.ndarray`, `embed_query(query) -> np.ndarray`, `embedding_dim` property.
+- `fastembed.py`: `FastEmbedEmbedder` implementation, wrapping fastembed's `TextEmbedding` (ONNX Runtime). Uses `BAAI/bge-small-en-v1.5` (384 dims) by default. `get_instance()` returns a process-wide cached singleton so the ONNX model is only loaded once.
+
+**Input**: `List[str]` (chunk texts, or a single query string)
+**Output**: `np.ndarray` of shape `(n_texts, 384)`, or `(384,)` for a single query
+
+### Stage 4: Indexing
+
+**Module**: `core/index/`
+
+Persists embedded chunks and serves vector search:
+
+- `base.py`: `VectorStore` ABC defining the storage contract — `setup()`, `store_chunks(...)`, `search(query_embedding, user_id, top_k, date_from, date_to) -> list[SearchResult]`, `list_documents(user_id) -> list[DocumentInfo]`, `update_document_date(document_id, user_id, document_date)`, `delete_document(document_id, user_id)`, `delete_all_for_user(user_id) -> int`, `close()`.
+- `pgvector.py`: `PgVectorStore` — Supabase/hosted Postgres implementation.
+- `local.py`: `LocalPgVectorStore` — local Postgres implementation, same schema/interface.
+- `config.py`: `get_vector_store()` returns a cached singleton, picking `LocalPgVectorStore` or `PgVectorStore` based on `QUERYNEST_STORAGE_MODE` (`local` vs. default `supabase`).
+
+**Input**: chunk texts, embeddings, and metadata (headings, pages, chunk indices, document date, source blocks)
+**Output**: stored rows; `search()` returns ranked `SearchResult`s, optionally pre-filtered by a `[date_from, date_to]` range on `document_date`.
+
+### Stage 5: Query Parsing
+
+**Module**: `core/query/parser.py`
+
+Regex-based extraction of natural-language date expressions from a raw search query, so hybrid search can combine a semantic query with a SQL date filter in one store call:
+
+- Recognizes relative ranges ("last 3 years", "past 6 months", "last year"), exact years ("in 2020"), inclusive ranges ("from 2020 to 2023", "2020-2023"), and open-ended bounds ("before 2020", "after 2020").
+- `parse_query(query) -> ParsedQuery`, where `ParsedQuery` holds the date-expression-stripped `query` text plus optional `date_from`/`date_to`.
+
+**Input**: raw query string (e.g. `"encoder architecture from 2020 to 2023"`)
+**Output**: `ParsedQuery(query="encoder architecture", date_from=date(2020,1,1), date_to=date(2023,12,31))`
 
 ---
 
@@ -92,6 +130,42 @@ A semantically coherent unit of text, ready for embedding.
 | `heading` | `str` | Section heading (from `section-header` blocks) |
 | `chunk_index` | `int` | Sequential index within document |
 
+### SourceBlock / SearchResult / DocumentInfo
+
+Index-layer types (`core/index/base.py`), distinct from the ingestion-layer models above — these are what `VectorStore.search()` and `VectorStore.list_documents()` return.
+
+**SourceBlock** — a trimmed-down copy of `ExtractedBlock` stored alongside a chunk for highlight rendering.
+
+| Field | Type | Description |
+|---|---|---|
+| `text` | `str` | Block text |
+| `page` | `int` | Zero-indexed page number |
+| `bbox` | `list[float]` | Bounding box |
+| `type` | `str` | Block type |
+
+**SearchResult** — one ranked search hit.
+
+| Field | Type | Description |
+|---|---|---|
+| `chunk_id` | `int` | Store-assigned chunk id |
+| `document_id` | `str` | Owning document id |
+| `text` | `str` | Chunk text |
+| `heading` | `str` | Section heading |
+| `score` | `float` | Similarity score |
+| `page` | `int` | Page of the chunk's first block |
+| `document_date` | `date \| None` | Resolved document date |
+| `source_blocks` | `list[SourceBlock]` | Blocks making up the chunk |
+
+**DocumentInfo** — one row in a document listing.
+
+| Field | Type | Description |
+|---|---|---|
+| `document_id` | `str` | Document id |
+| `filename` | `str` | Original filename |
+| `user_id` | `str` | Owning user |
+| `document_date` | `date \| None` | Resolved document date |
+| `chunk_count` | `int` | Number of chunks stored for the document |
+
 ---
 
 ## Module Details
@@ -99,22 +173,55 @@ A semantically coherent unit of text, ready for embedding.
 ### core/ingest/
 
 - `extractor.py`: Single function `extract(pdf_path) -> ExtractedDocument`. Wraps pymupdf4llm JSON output.
+- `date_extractor.py`: `extract_date(filename, pdf_metadata, first_page_text) -> tuple[date | None, str | None]`. Resolves a document date via the D5 fallback chain (filename → PDF metadata → content), returning the date plus which source it came from (`"filename"`, `"metadata"`, `"content"`, or `None`). Also exposes the individual `extract_date_from_filename`, `extract_date_from_metadata`, `extract_date_from_text` helpers.
 
 ### core/chunking/
 
 - `chunker.py`: `chunk_document(doc) -> List[Chunk]`. Groups blocks by heading, flushes on boundary or overflow.
 - `tokenizer.py`: `estimate_tokens(text) -> int`. Rough word-count-based estimate.
 
+### core/embedding/
+
+- `base.py`: `BaseEmbedder` ABC.
+- `fastembed.py`: `FastEmbedEmbedder`, cached singleton via `get_instance()`.
+
+### core/index/
+
+- `base.py`: `VectorStore` ABC, `SourceBlock`, `SearchResult`, `DocumentInfo`.
+- `pgvector.py`: `PgVectorStore` (Supabase/hosted Postgres).
+- `local.py`: `LocalPgVectorStore` (local Postgres, same schema).
+- `config.py`: `get_vector_store()` — picks an implementation from `QUERYNEST_STORAGE_MODE` and caches it.
+
+### core/query/
+
+- `parser.py`: `parse_query(query) -> ParsedQuery`. Regex-based NL date-range extraction (see Stage 5 above).
+
 ### core/models/
 
 - `extracted.py`: `ExtractedBlock`, `ExtractedPage`, `ExtractedDocument`
 - `chunk.py`: `Chunk`
 
+### core/eval/
+
+Golden-query-set retrieval evaluation. See `docs/evaluation.md` for full methodology.
+
+- `runner.py`: `load_golden(path) -> list[EvalQuery]` parses the golden dataset; `run_search(query_text, top_k)` calls `POST /api/search` on a running API instance; `run_eval(golden_path, top_k) -> list[QueryResult]` runs every golden query and computes precision@{5,10}, recall@{5,10}, nDCG@10, and MRR per query.
+- `metrics.py`: `precision_at_k`, `recall_at_k`, `ndcg_at_k`, `mrr` — pure functions over retrieved/relevant id lists.
+- `report.py`: `print_report(results)` prints a console summary; `generate_report(results, output_dir)` writes a timestamped, git-commit-tagged JSON report (aggregate metrics, by-type breakdown, worst queries by MRR, per-query results) to `reports/`.
+- `download_pdfs.py`: Fetches the fixture PDFs used by the golden dataset into `data/eval/pdfs/<category>/`.
+- `__main__.py`: `python -m core.eval` — runs `run_eval` against `data/eval/golden.json`, prints the report, and saves it to `reports/`.
+
 ### core/api/ (Dev Only)
 
-- `main.py`: FastAPI app with CORS for localhost:5173
-- `routes.py`: `POST /upload`, `GET /documents/{doc_id}/chunks`
-- `store.py`: In-memory document/chunk storage
+- `main.py`: FastAPI app; CORS for `localhost:5173`; lifespan hook calls `store.setup()` when `QUERYNEST_DATABASE_URL` is set, otherwise runs in-memory-only.
+- `routes/`: route modules, assembled in `routes/__init__.py` as `api_router`.
+  - `health.py`: `GET /`, `GET /health`
+  - `upload.py`: `POST /upload/bulk` (background bulk upload — extracts, chunks, date-detects, and, when a database is configured, embeds and stores each file), `GET /upload/{job_id}/status` (per-file job progress)
+  - `documents.py`: `GET /documents`, `GET /documents/{doc_id}/chunks`, `PATCH /documents/{doc_id}/date`, `GET /documents/{doc_id}/pdf`
+  - `search.py`: `POST /search` — parses NL date expressions out of the query, embeds the remaining text, and runs a hybrid (semantic + date-filtered) store search
+  - `eval.py`: `POST /eval/seed` (background job that re-indexes the eval fixture PDFs for a dedicated `golden_user`), `GET /eval/seed/{job_id}/status`
+- `jobs.py`: Thread-safe in-process `Job`/`FileStatus` tracker for background bulk-upload and eval-seed progress (not persisted, not for production scale).
+- `store.py`: In-memory chunk store used by the chunk-viewer dev tool (separate from the vector store).
 
 ### tools/chunk-viewer/ (Dev Only)
 
@@ -224,8 +331,8 @@ pytest tests/chunking/  # Chunking tests only
 
 - **Extraction**: ~16 seconds for 15-page PDF (includes ONNX layout analysis)
 - **Chunking**: <1 second (pure Python, no I/O)
-- **Embedding**: ~100ms per chunk on CPU (planned)
-- **Search**: <50ms with HNSW index (planned)
+- **Embedding**: ~100ms per chunk on CPU
+- **Search**: <50ms with HNSW index
 
 GPU acceleration available for pymupdf4llm by switching `onnxruntime` to `onnxruntime-gpu` (drop-in replacement, no code changes).
 
@@ -233,10 +340,7 @@ GPU acceleration available for pymupdf4llm by switching `onnxruntime` to `onnxru
 
 ## Future Scope
 
-1. **Embedding pipeline**: fastembed with BAAI/bge-small-en-v1.5
-2. **Vector index**: pgvector with HNSW
-3. **Hybrid search**: Semantic + metadata filtering
-4. **Answer generation**: LLM-based with citations
-5. **PDF highlighting**: Syncfusion Flutter PDF Viewer annotations
-6. **Offline ↔ online sync**: Desktop syncs with Supabase when online
-7. **Cloud processing**: Mobile/web upload to cloud for processing (no desktop required)
+1. **Answer generation**: LLM-based with citations
+2. **PDF highlighting**: Syncfusion Flutter PDF Viewer annotations
+3. **Offline ↔ online sync**: Desktop syncs with Supabase when online
+4. **Cloud processing**: Mobile/web upload to cloud for processing (no desktop required)

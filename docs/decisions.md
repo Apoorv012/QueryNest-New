@@ -81,3 +81,42 @@ Architecture and technical decisions with rationale.
 **Future considerations:**
 - If quality insufficient, upgrade to BAAI/bge-base-en-v1.5 (210 MB, 768 dims)
 - If multilingual needed, upgrade to intfloat/multilingual-e5-large (2.2 GB)
+
+---
+
+## D5: Date Extraction — Fallback Chain (User Input → Filename → Metadata → Content → Null)
+
+**Decision:** Resolve a document's date through an ordered fallback chain, stopping at the first source that yields a confident result: explicit user input, then a 4-digit year in the filename, then the PDF's `creationDate`/`modDate` metadata, then a date-like phrase in the first-page text, then `null` if nothing matches. Implemented in `core/ingest/date_extractor.py`; `extract_date()` also returns which source won (`"filename"`, `"metadata"`, `"content"`, or `None`) so callers (e.g. the bulk upload job status) can surface provenance to the user.
+
+**Why:**
+- **User input first**: a human-provided date is always more trustworthy than anything inferred, and should never be overridden by a heuristic.
+- **Filename next**: personal PDF collections are frequently named with a year (`report_2023.pdf`, `2020-audit.pdf`) — cheap, fast, and reasonably reliable regex match on `\d{4}`.
+- **Metadata next**: `creationDate`/`modDate` are structured and unambiguous when present, but many PDFs (scanned documents, exports) have stripped or inaccurate metadata, so it's tried only after the cheaper filename check.
+- **Content last**: regex-scanning the first page for phrases like "published in 2020" or "Copyright 2019" is the most expensive and least reliable signal (false positives from citation years, etc.), so it's the last resort before giving up.
+- **Null is a valid outcome**: search and document listing already treat `document_date: None` as "unknown" rather than crashing or defaulting to today — no forced guess.
+
+**Alternatives considered:**
+- LLM-based date extraction: higher accuracy on ambiguous content, but adds API cost/latency to every upload and a network dependency, contradicting the local-first bulk-upload path.
+- Metadata-only: simplest, but unreliable — many real-world PDFs have missing or wrong `creationDate`.
+- Always require user input: most accurate, but adds friction to bulk upload where users are uploading many files at once.
+
+**Risk:** Filename year and content-year regexes can pick up an unrelated 4-digit number (a page count, a citation year, an ID). Mitigated by checking sources in order of reliability and by exposing `date_source` so a wrong guess is visible and user-correctable via `PATCH /documents/{doc_id}/date`.
+
+---
+
+## D6: NL Query Date Parsing — Regex-Based
+
+**Decision:** Extract date-range expressions from search queries with hand-written regex patterns (`core/query/parser.py`) rather than an LLM or NLP library, covering relative ranges ("last 3 years", "past 6 months"), exact years ("in 2020"), inclusive ranges ("from 2020 to 2023", "2020-2023"), and open bounds ("before 2020", "after 2020"). `parse_query()` returns a `ParsedQuery` with the date phrase stripped from the query text plus `date_from`/`date_to`, which the search route feeds into the vector store as a SQL pre-filter alongside the semantic query.
+
+**Why:**
+- **No API dependency**: runs entirely in-process, no external call or API key, consistent with the local-first, low-dependency posture of the rest of the pipeline (D3, D4).
+- **Deterministic and testable**: a fixed set of regex patterns is easy to unit test exhaustively (`tests/query/test_parser.py`) and behaves the same way every time, unlike an LLM's variable output.
+- **Fast**: negligible latency added to every search request — regex matching is microseconds versus a network round-trip for an LLM call.
+- **Covers the realistic query vocabulary**: personal PDF search queries use a small, predictable set of date phrasings; a comprehensive NLP date parser (e.g. `dateparser`) would handle more phrasings but adds a dependency for cases unlikely to occur in practice.
+
+**Alternatives considered:**
+- LLM-based query understanding: more flexible phrasing support, but adds latency, cost, and a hard dependency on an external API for a core search-path operation.
+- General-purpose date-parsing library (e.g. `dateparser`, `dateutil`): broader coverage, but pulls in a new dependency for marginal gain over the query vocabulary actually seen.
+- No date parsing (metadata filters only via UI controls): simpler, but loses the "just type it in the search box" ergonomics of combining semantic and date intent in one query.
+
+**Risk:** Regex patterns only cover the phrasings they were written for — an unanticipated phrasing (e.g. "since March") silently falls through to `ParsedQuery(query=query)` with no date filter, rather than erroring. Mitigated by keeping the query text unmodified in that case, so the search simply falls back to pure semantic search instead of failing.

@@ -10,3 +10,5 @@ tmp/
 reports/
 node_modules/
 .claude/worktrees/
+data/eval/candidates/
+data/candidates/
