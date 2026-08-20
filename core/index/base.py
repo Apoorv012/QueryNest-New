@@ -23,6 +23,11 @@ class SearchResult:
     page: int
     document_date: date | None = None
     source_blocks: list[SourceBlock] = field(default_factory=list)
+    # D8: True when this result satisfies the query's date filter (or no
+    # date filter was applied). False marks a result backfilled from an
+    # unfiltered search to make up a shortfall — see
+    # core/api/routes/search.py.
+    within_date_range: bool = True
 
 
 @dataclass

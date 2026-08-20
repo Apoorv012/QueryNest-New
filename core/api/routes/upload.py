@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import time
 import uuid
 from pathlib import Path
@@ -11,7 +10,9 @@ from core.api.deps import validate_user_id
 
 router = APIRouter()
 
-_has_pgvector = bool(os.environ.get("QUERYNEST_DATABASE_URL"))
+from core.index.config import is_store_configured
+
+_has_pgvector = is_store_configured()
 
 UPLOAD_DIR = Path("data/uploads").resolve()
 

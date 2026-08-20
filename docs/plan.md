@@ -50,6 +50,35 @@ filtering far better than academic papers do. Keeping three families preserves t
 **Annual reports stay in scope**, which means table extraction must be fixed (Phase 2.4).
 Dropping them would narrow the product to academics and defeat the goal.
 
+### D10: Corpus documents are capped at ~45 pages
+
+**Decision.** No document in the eval corpus exceeds ~45 pages. Full annual reports
+(`gsk_2024` 344pp, `unilever_2024` 305pp, `ppl_2024` 170pp, `berkshire_2024` 150pp) and
+`gpt3_2020` (75pp) are excluded. `chain_of_thought_2022` (43pp) is kept as a deliberate
+borderline case.
+
+**Why:**
+- **Representativeness.** QueryNest targets general public use — the PDFs in a Downloads folder
+  or a WhatsApp chat. A 344-page annual report is not that document, so tuning retrieval
+  against it optimizes for a user who does not exist.
+- **Iteration speed, which turns out to be the bigger win.** The four largest reports were 1,087
+  of 1,228 corpus pages — 88% of extraction cost for 4 of 14 documents. The cap takes a full
+  re-seed from **~23 minutes to ~3.5**, which is what makes Phase 2's "change one thing, re-run
+  the eval" discipline actually affordable. Before the cap, strict per-change attribution would
+  have cost an hour per change and would have been abandoned in practice.
+- Financial documents remain in scope; they are simply represented by short filings rather than
+  complete annual reports.
+
+**Consequence — the golden set must be rebuilt.** The cap kills 11 of the current 30 queries
+outright and degrades 6 more, leaving ~19 usable. This is less costly than it sounds: Phase 1.5
+already required rewriting the golden set to reach 50 queries with ≥10 temporal ones. Retire the
+dead queries rather than mourning them.
+
+**Consequence — the financial family needs restocking.** Only `berkshire_2022` (10pp) and
+`berkshire_2023` (16pp) survive. Short financial documents are needed: quarterly reports,
+10-Q filings, small-company annual reports, fund factsheets — anything in the 10–30pp range that
+is still table-heavy enough to exercise Phase 2.4.
+
 > **Open — pending corpus review.** The third family is provisional. Candidate material on hand:
 > invoices, and friends' resumes. Before locking this, assemble the candidate PDFs and check
 > three things: (1) are they digital-native, not scanned? (2) do they carry a real date, so

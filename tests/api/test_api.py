@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -134,6 +134,28 @@ class TestUpload:
         assert file_status["error"] is not None
         assert "connection refused" in file_status["error"]
 
+    def test_upload_never_constructs_a_real_vector_store(self, client):
+        # Regression guard for the leak where `_has_pgvector` (computed at
+        # import time from QUERYNEST_DATABASE_URL) was True whenever `.env`
+        # carried a real Supabase URL, so plain `pytest` runs indexed test
+        # fixtures into production (docs/plan.md: 35 junk documents —
+        # test.pdf, a.pdf, b.pdf, ../../evil.pdf — came from test runs).
+        # tests/conftest.py now forces QUERYNEST_DATABASE_URL empty for the
+        # whole session and replaces `get_vector_store` with a stub that
+        # raises; assert here that a normal upload never even calls it, and
+        # that `_has_pgvector` reflects the forced-off env var.
+        import core.api.routes.upload as upload_route
+
+        assert upload_route._has_pgvector is False
+
+        with patch("core.index.get_vector_store") as mock_get_store:
+            data = _upload_pdf(client)
+            job_id = data["job_id"]
+            status = client.get(f"/upload/{job_id}/status").json()
+
+        assert status["files"][0]["status"] == "done"
+        mock_get_store.assert_not_called()
+
     def test_job_completes(self, client):
         data = _upload_pdf(client)
         job_id = data["job_id"]
@@ -260,3 +282,105 @@ class TestSearch:
             resp = client.post("/search", json={"query": ""})
             assert resp.status_code == 400
             assert resp.json()["detail"] == "Query cannot be empty"
+
+
+class TestSearchBackfill:
+    """D8: date-filtered results short of top_k get backfilled from an
+    unfiltered search, appended after the in-range results and clearly
+    marked via `within_date_range` (docs/plan.md D8 / task 2.6)."""
+
+    @staticmethod
+    def _result(chunk_id, score):
+        from core.index.base import SearchResult
+
+        return SearchResult(
+            chunk_id=chunk_id,
+            document_id=f"doc{chunk_id}",
+            text=f"text {chunk_id}",
+            heading="h",
+            score=score,
+            page=0,
+        )
+
+    def _search(self, client, fake_store, body):
+        fake_embedder = MagicMock()
+        fake_embedder.embed_query.return_value = [0.0] * 384
+
+        with patch("core.api.routes.search._has_pgvector", True), \
+             patch("core.index.get_vector_store", return_value=fake_store), \
+             patch(
+                 "core.embedding.FastEmbedEmbedder.get_instance",
+                 return_value=fake_embedder,
+             ):
+            return client.post("/search", json=body)
+
+    def test_backfills_short_date_filtered_results(self, client):
+        in_range = [self._result(1, 0.9), self._result(2, 0.8)]
+        # The unfiltered rerun naturally includes the same top hits again
+        # (chunk_id 1, 2) plus new ones — duplicates must be skipped.
+        unfiltered = [
+            self._result(1, 0.9),
+            self._result(2, 0.8),
+            self._result(3, 0.7),
+            self._result(4, 0.6),
+            self._result(5, 0.5),
+        ]
+        fake_store = MagicMock()
+        fake_store.search.side_effect = [in_range, unfiltered]
+
+        resp = self._search(
+            client,
+            fake_store,
+            {"query": "invoices in 2020", "top_k": 5, "user_id": "u1"},
+        )
+
+        assert resp.status_code == 200
+        results = resp.json()["results"]
+        assert [r["chunk_id"] for r in results] == [1, 2, 3, 4, 5]
+        assert [r["within_date_range"] for r in results] == [
+            True, True, False, False, False,
+        ]
+
+        assert fake_store.search.call_count == 2
+        second_call = fake_store.search.call_args_list[1]
+        assert second_call.kwargs["date_from"] is None
+        assert second_call.kwargs["date_to"] is None
+        # Oversampled by the shortfall (top_k=5 + 2 already-kept in-range
+        # results) so duplicates don't starve the backfill.
+        assert second_call.kwargs["top_k"] == 7
+
+    def test_no_second_query_when_already_at_top_k(self, client):
+        in_range = [self._result(i, 1.0 - i / 10) for i in range(5)]
+        fake_store = MagicMock()
+        fake_store.search.return_value = in_range
+
+        resp = self._search(
+            client,
+            fake_store,
+            {"query": "invoices in 2020", "top_k": 5, "user_id": "u1"},
+        )
+
+        assert resp.status_code == 200
+        results = resp.json()["results"]
+        assert len(results) == 5
+        assert all(r["within_date_range"] for r in results)
+        fake_store.search.assert_called_once()
+
+    def test_no_backfill_without_date_filter(self, client):
+        # No date expression in the query and no explicit date_from/date_to
+        # -> behaves exactly as before: single query, no backfill logic.
+        few_results = [self._result(1, 0.9), self._result(2, 0.8)]
+        fake_store = MagicMock()
+        fake_store.search.return_value = few_results
+
+        resp = self._search(
+            client,
+            fake_store,
+            {"query": "insurance policy", "top_k": 5, "user_id": "u1"},
+        )
+
+        assert resp.status_code == 200
+        results = resp.json()["results"]
+        assert len(results) == 2
+        assert all(r["within_date_range"] for r in results)
+        fake_store.search.assert_called_once()

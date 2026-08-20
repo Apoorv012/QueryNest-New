@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import uuid
 from pathlib import Path
 
@@ -10,7 +9,9 @@ from core.api.jobs import Job, create_job, get_job, update_file_status
 
 router = APIRouter()
 
-_has_pgvector = bool(os.environ.get("QUERYNEST_DATABASE_URL"))
+from core.index.config import is_store_configured
+
+_has_pgvector = is_store_configured()
 GOLDEN_USER = "golden_user"
 EVAL_DIR = Path("data/eval/pdfs")
 
