@@ -77,6 +77,32 @@ class TestUpload:
         assert resp.status_code == 400
         assert "exceeds" in resp.json()["detail"]
 
+    def test_rejects_too_many_files(self, client):
+        with open(SMALL_PDF, "rb") as f:
+            content = f.read()
+        from core.api.routes.upload import MAX_FILES_PER_REQUEST
+
+        files = [
+            ("files", (f"f{i}.pdf", content, "application/pdf"))
+            for i in range(MAX_FILES_PER_REQUEST + 1)
+        ]
+        resp = client.post("/upload/bulk", files=files)
+        assert resp.status_code == 400
+        assert "Too many files" in resp.json()["detail"]
+
+    def test_accepts_file_count_at_limit(self, client):
+        with open(SMALL_PDF, "rb") as f:
+            content = f.read()
+        from core.api.routes.upload import MAX_FILES_PER_REQUEST
+
+        files = [
+            ("files", (f"f{i}.pdf", content, "application/pdf"))
+            for i in range(MAX_FILES_PER_REQUEST)
+        ]
+        resp = client.post("/upload/bulk", files=files)
+        assert resp.status_code == 200
+        assert resp.json()["total"] == MAX_FILES_PER_REQUEST
+
     def test_traversal_filename_is_sanitized(self, client):
         data = _upload_pdf(client, filename="../../evil.pdf")
         job_id = data["job_id"]

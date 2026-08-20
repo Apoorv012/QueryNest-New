@@ -66,8 +66,20 @@ class TestBeforeAfter:
 
     def test_after_year(self):
         result = parse_query("papers after 2023")
-        assert result.date_from == date(2023, 1, 1)
+        assert result.date_from == date(2024, 1, 1)
         assert result.date_to is None
+        assert result.query == "papers"
+
+    def test_before_after_year_symmetry_excludes_the_named_year(self):
+        # `before YYYY` and `after YYYY` should both exclude YYYY itself:
+        # before/after are exclusive bounds, not inclusive ones.
+        before = parse_query("papers before 2020")
+        after = parse_query("papers after 2020")
+        assert before.date_to == date(2019, 12, 31)
+        assert after.date_from == date(2021, 1, 1)
+        # Neither bound includes any day within 2020.
+        assert before.date_to < date(2020, 1, 1)
+        assert after.date_from > date(2020, 12, 31)
 
 
 class TestNoDate:

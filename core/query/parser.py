@@ -99,7 +99,7 @@ def parse_query(query: str) -> ParsedQuery:
         cleaned = _clean(query, _AFTER_YEAR)
         return ParsedQuery(
             query=cleaned,
-            date_from=date(year, 1, 1),
+            date_from=date(year + 1, 1, 1),
         )
 
     return ParsedQuery(query=query)

@@ -17,6 +17,7 @@ _has_pgvector = is_store_configured()
 UPLOAD_DIR = Path("data/uploads").resolve()
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+MAX_FILES_PER_REQUEST = 20
 _READ_CHUNK_SIZE = 1024 * 1024
 
 
@@ -162,6 +163,13 @@ def upload_bulk(
     user_id: str = Depends(validate_user_id),
 ):
     from core.api.jobs import create_job
+
+    if len(files) > MAX_FILES_PER_REQUEST:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Too many files: {len(files)} exceeds the "
+            f"{MAX_FILES_PER_REQUEST}-file limit per request",
+        )
 
     pdf_files = [f for f in files if f.filename and f.filename.lower().endswith(".pdf")]
     if not pdf_files:
