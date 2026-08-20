@@ -17,14 +17,34 @@ def test_recall_at_k():
     assert recall_at_k(retrieved, set(), 3) == 0.0
 
 
+def test_recall_at_k_never_exceeds_one_with_duplicates():
+    # An 8+2 chunk split over 2 relevant docs, passed in without dedup,
+    # used to yield recall@10 == 5.0 (docs/plan.md 1.1).
+    retrieved = ["a"] * 8 + ["b"] * 2
+    relevant = {"a", "b"}
+    score = recall_at_k(retrieved, relevant, 10)
+    assert 0.0 <= score <= 1.0
+    assert score == 1.0
+
+
 def test_ndcg_at_k():
     relevances = [2, 1, 0, 0, 1]
-    score = ndcg_at_k(relevances, 5)
-    assert 0.0 <= score <= 1.0
     ideal = [2, 1, 1, 0, 0]
-    from core.eval.metrics import ndcg_at_k as _ndcg
-    ideal_score = _ndcg(ideal, 5)
+    score = ndcg_at_k(relevances, ideal, 5)
+    assert 0.0 <= score <= 1.0
+    ideal_score = ndcg_at_k(ideal, ideal, 5)
     assert score <= ideal_score
+    assert ideal_score == 1.0
+
+
+def test_ndcg_at_k_penalizes_mediocre_results_against_true_ideal():
+    # All-1s retrieved in perfect (descending) order used to score a false
+    # 1.0 because IDCG was computed from the retrieved list itself, instead
+    # of from the golden set's true ideal ranking (docs/plan.md 1.2).
+    relevances = [1] * 10
+    ideal_relevances = [2, 2, 1, 1, 1, 1, 1, 1, 1, 1]
+    score = ndcg_at_k(relevances, ideal_relevances, 10)
+    assert score < 1.0
 
 
 def test_mrr():

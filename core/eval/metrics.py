@@ -15,11 +15,22 @@ def recall_at_k(retrieved: list[str], relevant: set[str], k: int) -> float:
     if not relevant:
         return 0.0
     top_k = retrieved[:k]
+    # `retrieved` is expected to already be deduplicated at the document
+    # level (see eval/runner.py), but guard here too: without a cap, a
+    # retrieved list with duplicate hits can push hits above len(relevant)
+    # and recall above 1.0.
     hits = sum(1 for doc_id in top_k if doc_id in relevant)
-    return hits / len(relevant)
+    return min(hits / len(relevant), 1.0)
 
 
-def ndcg_at_k(relevances: list[int], k: int) -> float:
+def ndcg_at_k(relevances: list[int], ideal_relevances: list[int], k: int) -> float:
+    """nDCG@k, normalized against the *true* ideal ranking.
+
+    `relevances` are the relevance scores of the retrieved results in
+    retrieved order; `ideal_relevances` is the best-possible ordering
+    (typically the sorted relevance scores of every known-relevant
+    document from the golden set), independent of what was retrieved.
+    """
     if not relevances or k <= 0:
         return 0.0
 
@@ -29,7 +40,7 @@ def ndcg_at_k(relevances: list[int], k: int) -> float:
         )
 
     actual = dcg(relevances[:k])
-    ideal = dcg(sorted(relevances, reverse=True)[:k])
+    ideal = dcg(sorted(ideal_relevances, reverse=True)[:k])
     if ideal == 0:
         return 0.0
     return actual / ideal

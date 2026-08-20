@@ -4,19 +4,21 @@ import os
 from datetime import date
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+
+from core.api.deps import validate_user_id
 
 router = APIRouter()
 
 _has_pgvector = bool(os.environ.get("QUERYNEST_DATABASE_URL"))
 
-UPLOAD_DIR = Path("data/uploads")
+UPLOAD_DIR = Path("data/uploads").resolve()
 
 
 @router.get("/documents")
-def list_documents(user_id: str = "dev-user"):
+def list_documents(user_id: str = Depends(validate_user_id)):
     if not _has_pgvector:
         raise HTTPException(
             status_code=503, detail="Requires database. Set QUERYNEST_DATABASE_URL."
@@ -41,7 +43,7 @@ def list_documents(user_id: str = "dev-user"):
 
 
 @router.get("/documents/{doc_id}/chunks")
-def list_chunks(doc_id: str, user_id: str = "dev-user"):
+def list_chunks(doc_id: str, user_id: str = Depends(validate_user_id)):
     from core.api.store import get_chunks
 
     chunks = get_chunks(doc_id)
@@ -75,7 +77,9 @@ class UpdateDateRequest(BaseModel):
 
 
 @router.patch("/documents/{doc_id}/date")
-def update_document_date(doc_id: str, body: UpdateDateRequest, user_id: str = "dev-user"):
+def update_document_date(
+    doc_id: str, body: UpdateDateRequest, user_id: str = Depends(validate_user_id)
+):
     if not _has_pgvector:
         raise HTTPException(
             status_code=503, detail="Requires database. Set QUERYNEST_DATABASE_URL."
@@ -91,8 +95,8 @@ def update_document_date(doc_id: str, body: UpdateDateRequest, user_id: str = "d
 
 
 @router.get("/documents/{doc_id}/pdf")
-def get_document_pdf(doc_id: str, user_id: str = "dev-user"):
-    pdf_path = UPLOAD_DIR / user_id / f"{doc_id}.pdf"
-    if not pdf_path.exists():
+def get_document_pdf(doc_id: str, user_id: str = Depends(validate_user_id)):
+    pdf_path = (UPLOAD_DIR / user_id / f"{doc_id}.pdf").resolve()
+    if not pdf_path.is_relative_to(UPLOAD_DIR) or not pdf_path.exists():
         raise HTTPException(status_code=404, detail="PDF not found")
     return FileResponse(pdf_path, media_type="application/pdf", filename=f"{doc_id}.pdf")

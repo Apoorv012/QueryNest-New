@@ -107,6 +107,33 @@ class TestUpload:
         assert resp.status_code == 200
         assert resp.json()["total"] == 2
 
+    def test_indexing_failure_reaches_terminal_state_and_is_not_done(self, client):
+        # A DB error during embed/store used to be swallowed by
+        # `except (RuntimeError, OSError): pass`, still marking the file
+        # "done" while it was never made searchable — and a psycopg2.Error
+        # (neither RuntimeError nor OSError) escaped both handlers entirely,
+        # pinning the job at "pending" forever (docs/plan.md 0.2).
+        from unittest.mock import MagicMock
+
+        class FakeDbError(Exception):
+            pass
+
+        fake_store = MagicMock()
+        fake_store.store_chunks.side_effect = FakeDbError("connection refused")
+
+        with patch("core.api.routes.upload._has_pgvector", True), \
+             patch("core.index.get_vector_store", return_value=fake_store):
+            data = _upload_pdf(client)
+        job_id = data["job_id"]
+
+        status = client.get(f"/upload/{job_id}/status").json()
+        assert status["status"] in ("done", "failed")  # terminal, not "processing"
+        file_status = status["files"][0]
+        assert file_status["status"] != "done"
+        assert file_status["status"] == "indexed_partially"
+        assert file_status["error"] is not None
+        assert "connection refused" in file_status["error"]
+
     def test_job_completes(self, client):
         data = _upload_pdf(client)
         job_id = data["job_id"]
@@ -160,6 +187,34 @@ class TestDocuments:
         resp = client.get("/documents/fake-id/pdf")
         assert resp.status_code == 404
         assert resp.json()["detail"] == "PDF not found"
+
+    @pytest.mark.parametrize("traversal_user_id", ["..", "../..", "a/../.."])
+    def test_pdf_rejects_path_traversal_user_id(self, client, traversal_user_id):
+        # GET /documents/{doc_id}/pdf used to resolve UPLOAD_DIR / user_id /
+        # f"{doc_id}.pdf" without validating user_id, so a traversal value
+        # could serve any .pdf on disk outside the upload directory
+        # (docs/plan.md 0.1, verified reproducing pre-fix).
+        import core.api.routes.documents as documents_route
+
+        # Plant a "secret" PDF at every directory a traversal in this
+        # parametrization could reach, so a regression that starts serving
+        # bytes again is caught regardless of which level it escapes to.
+        candidates = [
+            documents_route.UPLOAD_DIR.parent / "secret_outside.pdf",
+            documents_route.UPLOAD_DIR.parent.parent / "secret_outside.pdf",
+        ]
+        for path in candidates:
+            path.write_bytes(b"%PDF-1.4 secret %%EOF")
+        try:
+            resp = client.get(
+                "/documents/secret_outside/pdf",
+                params={"user_id": traversal_user_id},
+            )
+            assert 400 <= resp.status_code < 500
+            assert b"secret" not in resp.content
+        finally:
+            for path in candidates:
+                path.unlink(missing_ok=True)
 
     def test_list_documents_no_db(self, client):
         with patch("core.api.routes.documents._has_pgvector", False):

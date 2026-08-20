@@ -152,10 +152,10 @@ class PgVectorStore(VectorStore):
             params: list = [user_id]
 
             if date_from is not None:
-                conditions.append(sql.SQL("document_date >= %s"))
+                conditions.append(sql.SQL("(document_date IS NULL OR document_date >= %s)"))
                 params.append(date_from)
             if date_to is not None:
-                conditions.append(sql.SQL("document_date <= %s"))
+                conditions.append(sql.SQL("(document_date IS NULL OR document_date <= %s)"))
                 params.append(date_to)
 
             where = sql.SQL(" AND ").join(conditions)

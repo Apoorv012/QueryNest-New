@@ -10,9 +10,19 @@ def test_returns_extracted_document(extracted_doc):
 def test_pages_have_structure(extracted_doc):
     for page in extracted_doc.pages:
         assert isinstance(page, ExtractedPage)
-        assert page.page_number >= 1
+        assert page.page_number >= 0
         assert page.width > 0
         assert page.height > 0
+
+
+def test_first_page_is_zero_indexed(extracted_doc):
+    # ExtractedPage.page_number and ExtractedBlock.page must agree on the
+    # same zero-indexed convention (docs/plan.md 0.5), otherwise PDF
+    # highlighting lands one page off.
+    first_page = extracted_doc.pages[0]
+    assert first_page.page_number == 0
+    for block in first_page.blocks:
+        assert block.page == 0
 
 
 def test_blocks_have_valid_fields(extracted_doc):

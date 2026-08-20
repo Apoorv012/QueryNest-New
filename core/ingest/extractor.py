@@ -41,7 +41,7 @@ def extract(pdf_path: str) -> ExtractedDocument:
             ))
 
         pages.append(ExtractedPage(
-            page_number=page["page_number"],
+            page_number=page["page_number"] - 1,
             width=page["width"],
             height=page["height"],
             blocks=blocks,

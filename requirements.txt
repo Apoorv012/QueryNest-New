@@ -8,3 +8,5 @@ python-multipart
 psycopg2-binary
 pydantic
 python-dotenv
+requests
+numpy

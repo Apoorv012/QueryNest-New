@@ -33,10 +33,15 @@ class Job:
         return sum(1 for f in self.files if f.status == "error")
 
     @property
+    def partial(self) -> int:
+        return sum(1 for f in self.files if f.status == "indexed_partially")
+
+    @property
     def status(self) -> str:
+        terminal = self.completed + self.failed + self.partial
         if self.failed == self.total:
             return "failed"
-        if self.completed + self.failed == self.total:
+        if terminal == self.total:
             return "done"
         return "processing"
 

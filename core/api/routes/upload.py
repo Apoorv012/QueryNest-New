@@ -5,13 +5,15 @@ import time
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+
+from core.api.deps import validate_user_id
 
 router = APIRouter()
 
 _has_pgvector = bool(os.environ.get("QUERYNEST_DATABASE_URL"))
 
-UPLOAD_DIR = Path("data/uploads")
+UPLOAD_DIR = Path("data/uploads").resolve()
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 _READ_CHUNK_SIZE = 1024 * 1024
@@ -73,10 +75,13 @@ def _process_file(
         from core.api.store import save_document
         save_document(doc_id, filename, chunks)
 
-        pdf_dir = UPLOAD_DIR / user_id
+        pdf_dir = (UPLOAD_DIR / user_id).resolve()
+        if not pdf_dir.is_relative_to(UPLOAD_DIR):
+            raise ValueError(f"Invalid user_id: {user_id!r}")
         pdf_dir.mkdir(parents=True, exist_ok=True)
         (pdf_dir / f"{doc_id}.pdf").write_bytes(file_data)
 
+        index_error: str | None = None
         if _has_pgvector:
             try:
                 from core.embedding import FastEmbedEmbedder
@@ -111,18 +116,32 @@ def _process_file(
                     document_date=detected_date,
                     source_blocks=source_blocks_data,
                 )
-            except (RuntimeError, OSError):
-                pass
+            # Any embed/store failure (including psycopg2.Error, which is
+            # neither RuntimeError nor OSError) must not report "done".
+            except Exception as e:  # noqa: BLE001
+                index_error = str(e)
 
-        update_file_status(
-            job_id,
-            index,
-            status="done",
-            document_id=doc_id,
-            detected_date=detected_date.isoformat() if detected_date else None,
-            date_source=date_source,
-            processing_ms=(time.perf_counter() - start) * 1000,
-        )
+        if index_error is not None:
+            update_file_status(
+                job_id,
+                index,
+                status="indexed_partially",
+                document_id=doc_id,
+                detected_date=detected_date.isoformat() if detected_date else None,
+                date_source=date_source,
+                error=index_error,
+                processing_ms=(time.perf_counter() - start) * 1000,
+            )
+        else:
+            update_file_status(
+                job_id,
+                index,
+                status="done",
+                document_id=doc_id,
+                detected_date=detected_date.isoformat() if detected_date else None,
+                date_source=date_source,
+                processing_ms=(time.perf_counter() - start) * 1000,
+            )
     except (RuntimeError, OSError, ValueError) as e:
         update_file_status(
             job_id,
@@ -139,7 +158,7 @@ def _process_file(
 def upload_bulk(
     background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
-    user_id: str = "dev-user",
+    user_id: str = Depends(validate_user_id),
 ):
     from core.api.jobs import create_job
 
