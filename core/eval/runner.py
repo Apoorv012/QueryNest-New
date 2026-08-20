@@ -1,0 +1,127 @@
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+
+
+@dataclass
+class ExpectedDoc:
+    document_filename: str
+    relevance: int
+    text_contains: str = ""
+
+
+@dataclass
+class EvalQuery:
+    id: str
+    query: str
+    type: str
+    expected_docs: list[ExpectedDoc]
+    min_relevant: int = 1
+
+
+@dataclass
+class QueryResult:
+    query: EvalQuery
+    retrieved_doc_ids: list[str]
+    retrieved_doc_filenames: list[str]
+    precisions: dict[int, float] = field(default_factory=dict)
+    recalls: dict[int, float] = field(default_factory=dict)
+    ndcg: dict[int, float] = field(default_factory=dict)
+    rr: float = 0.0
+    latency_ms: float = 0.0
+
+
+def load_golden(path: Path) -> list[EvalQuery]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    queries = []
+    for q in data["queries"]:
+        expected = [
+            ExpectedDoc(
+                document_filename=e["document_filename"],
+                relevance=e["relevance"],
+                text_contains=e.get("text_contains", ""),
+            )
+            for e in q["expected_docs"]
+        ]
+        queries.append(EvalQuery(
+            id=q["id"],
+            query=q["query"],
+            type=q["type"],
+            expected_docs=expected,
+            min_relevant=q.get("min_relevant", 1),
+        ))
+    return queries
+
+
+def get_git_commit() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        return result.stdout.strip()
+    except (subprocess.SubprocessError, OSError):
+        return "unknown"
+
+
+def run_search(query_text: str, top_k: int = 10) -> tuple[list[dict], float]:
+    import requests
+    base = os.environ.get("QUERYNEST_API_URL", "http://localhost:8000")
+    start = time.perf_counter()
+    resp = requests.post(
+        f"{base}/api/search",
+        json={"query": query_text, "top_k": top_k},
+        timeout=30,
+    )
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    data = resp.json()
+    return data.get("results", []), elapsed_ms
+
+
+def run_eval(golden_path: Path, top_k: int = 10) -> list[QueryResult]:
+    from core.eval.metrics import mrr, ndcg_at_k, precision_at_k, recall_at_k
+
+    queries = load_golden(golden_path)
+    results = []
+
+    for q in queries:
+        raw_results, latency_ms = run_search(q.query, top_k)
+
+        retrieved_filenames = [r.get("document_id", "") for r in raw_results]
+        retrieved_full = raw_results
+
+        relevant_set = {e.document_filename for e in q.expected_docs if e.relevance >= 1}
+
+        pr = QueryResult(
+            query=q,
+            retrieved_doc_ids=retrieved_filenames,
+            retrieved_doc_filenames=[
+                r.get("document_id", "") for r in retrieved_full
+            ],
+            latency_ms=latency_ms,
+        )
+
+        for k in [5, 10]:
+            pr.precisions[k] = precision_at_k(retrieved_filenames, relevant_set, k)
+            pr.recalls[k] = recall_at_k(retrieved_filenames, relevant_set, k)
+
+        relevances = []
+        for r in retrieved_full:
+            doc_id = r.get("document_id", "")
+            rel = 0
+            for e in q.expected_docs:
+                if e.document_filename == doc_id:
+                    rel = max(rel, e.relevance)
+            relevances.append(rel)
+        pr.ndcg[10] = ndcg_at_k(relevances, 10)
+
+        pr.rr = mrr(retrieved_filenames, relevant_set)
+
+        results.append(pr)
+
+    return results

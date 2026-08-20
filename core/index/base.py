@@ -1,7 +1,16 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import date
 
 import numpy as np
+
+
+@dataclass
+class SourceBlock:
+    text: str
+    page: int
+    bbox: list[float]
+    type: str
 
 
 @dataclass
@@ -12,6 +21,17 @@ class SearchResult:
     heading: str
     score: float
     page: int
+    document_date: date | None = None
+    source_blocks: list[SourceBlock] = field(default_factory=list)
+
+
+@dataclass
+class DocumentInfo:
+    document_id: str
+    filename: str
+    user_id: str
+    document_date: date | None = None
+    chunk_count: int = 0
 
 
 class VectorStore(ABC):
@@ -22,20 +42,40 @@ class VectorStore(ABC):
     def store_chunks(
         self,
         document_id: str,
+        user_id: str,
+        filename: str,
         texts: list[str],
         embeddings: np.ndarray,
         headings: list[str],
         pages: list[int],
         chunk_indices: list[int],
+        document_date: date | None = None,
+        source_blocks: list[list[dict]] | None = None,
     ) -> None: ...
 
     @abstractmethod
     def search(
-        self, query_embedding: np.ndarray, top_k: int = 5, score_threshold: float = 0.0
+        self,
+        query_embedding: np.ndarray,
+        user_id: str,
+        top_k: int = 5,
+        date_from: date | None = None,
+        date_to: date | None = None,
     ) -> list[SearchResult]: ...
 
     @abstractmethod
-    def delete_document(self, document_id: str) -> None: ...
+    def list_documents(self, user_id: str) -> list[DocumentInfo]: ...
+
+    @abstractmethod
+    def update_document_date(
+        self, document_id: str, user_id: str, document_date: date | None
+    ) -> None: ...
+
+    @abstractmethod
+    def delete_document(self, document_id: str, user_id: str) -> None: ...
+
+    @abstractmethod
+    def delete_all_for_user(self, user_id: str) -> int: ...
 
     @abstractmethod
     def close(self) -> None: ...

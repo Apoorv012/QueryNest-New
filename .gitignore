@@ -4,3 +4,9 @@ __pycache__/
 *.pyc
 .env
 .querynest_data/
+data/uploads/
+data/eval/pdfs/
+tmp/
+reports/
+node_modules/
+.claude/worktrees/

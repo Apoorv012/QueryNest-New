@@ -1,0 +1,304 @@
+{
+    "queries": [
+        {
+            "id": "q1",
+            "query": "What is the attention mechanism in transformers?",
+            "type": "factual",
+            "expected_docs": [
+                {"document_filename": "attention_2017", "relevance": 2, "text_contains": "scaled dot-product"},
+                {"document_filename": "bert_2018", "relevance": 1, "text_contains": "attention"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q2",
+            "query": "How does BERT pre-training work?",
+            "type": "definitional",
+            "expected_docs": [
+                {"document_filename": "bert_2018", "relevance": 2, "text_contains": "masked language"},
+                {"document_filename": "bert_2018", "relevance": 2, "text_contains": "next sentence"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q3",
+            "query": "What is GPT-3 and how many parameters does it have?",
+            "type": "factual",
+            "expected_docs": [
+                {"document_filename": "gpt3_2020", "relevance": 2, "text_contains": "175 billion"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q4",
+            "query": "How does the Vision Transformer process images?",
+            "type": "definitional",
+            "expected_docs": [
+                {"document_filename": "vit_2020", "relevance": 2, "text_contains": "patch"},
+                {"document_filename": "vit_2020", "relevance": 1, "text_contains": "embedding"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q5",
+            "query": "What is Retrieval-Augmented Generation?",
+            "type": "definitional",
+            "expected_docs": [
+                {"document_filename": "rag_2020", "relevance": 2, "text_contains": "retrieval"},
+                {"document_filename": "rag_2020", "relevance": 2, "text_contains": "generation"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q6",
+            "query": "What is chain of thought prompting?",
+            "type": "definitional",
+            "expected_docs": [
+                {"document_filename": "chain_of_thought_2022", "relevance": 2, "text_contains": "chain of thought"},
+                {"document_filename": "chain_of_thought_2022", "relevance": 1, "text_contains": "reasoning"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q7",
+            "query": "What is LLaMA and what datasets was it trained on?",
+            "type": "factual",
+            "expected_docs": [
+                {"document_filename": "llama_2023", "relevance": 2, "text_contains": "LLaMA"},
+                {"document_filename": "llama_2023", "relevance": 1, "text_contains": "CommonCrawl"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q8",
+            "query": "How does the mixture of experts architecture work?",
+            "type": "definitional",
+            "expected_docs": [
+                {"document_filename": "mixture_of_experts_2024", "relevance": 2, "text_contains": "expert"},
+                {"document_filename": "mixture_of_experts_2024", "relevance": 1, "text_contains": "router"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q9",
+            "query": "Compare attention mechanisms in transformers vs RNNs",
+            "type": "comparative",
+            "expected_docs": [
+                {"document_filename": "attention_2017", "relevance": 2, "text_contains": "attention"},
+                {"document_filename": "bert_2018", "relevance": 1, "text_contains": "self-attention"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q10",
+            "query": "What is the difference between BERT and GPT?",
+            "type": "comparative",
+            "expected_docs": [
+                {"document_filename": "bert_2018", "relevance": 2, "text_contains": "encoder"},
+                {"document_filename": "gpt3_2020", "relevance": 2, "text_contains": "decoder"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q11",
+            "query": "What is Berkshire Hathaway's operating revenue for 2023?",
+            "type": "factual",
+            "expected_docs": [
+                {"document_filename": "berkshire_2023", "relevance": 2, "text_contains": "revenue"},
+                {"document_filename": "berkshire_2024", "relevance": 1, "text_contains": "2023"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q12",
+            "query": "What are GSK's key products and therapeutic areas?",
+            "type": "lookup",
+            "expected_docs": [
+                {"document_filename": "gsk_2024", "relevance": 2, "text_contains": "vaccines"},
+                {"document_filename": "gsk_2024", "relevance": 1, "text_contains": "specialty"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q13",
+            "query": "What was Unilever's net profit margin in 2024?",
+            "type": "factual",
+            "expected_docs": [
+                {"document_filename": "unilever_2024", "relevance": 2, "text_contains": "net profit"},
+                {"document_filename": "unilever_2024", "relevance": 1, "text_contains": "margin"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q14",
+            "query": "What is PPL's capital expenditure plan?",
+            "type": "factual",
+            "expected_docs": [
+                {"document_filename": "ppl_2024", "relevance": 2, "text_contains": "capital"},
+                {"document_filename": "ppl_2024", "relevance": 1, "text_contains": "investment"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q15",
+            "query": "Compare Berkshire Hathaway's performance across 2022, 2023, and 2024",
+            "type": "comparative",
+            "expected_docs": [
+                {"document_filename": "berkshire_2022", "relevance": 2, "text_contains": "2022"},
+                {"document_filename": "berkshire_2023", "relevance": 2, "text_contains": "2023"},
+                {"document_filename": "berkshire_2024", "relevance": 2, "text_contains": "2024"}
+            ],
+            "min_relevant": 2
+        },
+        {
+            "id": "q16",
+            "query": "What scaling laws apply to large language models?",
+            "type": "definitional",
+            "expected_docs": [
+                {"document_filename": "llama_2023", "relevance": 2, "text_contains": "scaling"},
+                {"document_filename": "gpt3_2020", "relevance": 1, "text_contains": "scaling"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q17",
+            "query": "How do transformers handle long sequences?",
+            "type": "procedural",
+            "expected_docs": [
+                {"document_filename": "attention_2017", "relevance": 2, "text_contains": "complexity"},
+                {"document_filename": "mixture_of_experts_2024", "relevance": 1, "text_contains": "sequence"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q18",
+            "query": "What is the role of pre-training in NLP models?",
+            "type": "definitional",
+            "expected_docs": [
+                {"document_filename": "bert_2018", "relevance": 2, "text_contains": "pre-training"},
+                {"document_filename": "gpt3_2020", "relevance": 2, "text_contains": "pre-trained"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q19",
+            "query": "How does Retrieval-Augmented Generation improve factual accuracy?",
+            "type": "procedural",
+            "expected_docs": [
+                {"document_filename": "rag_2020", "relevance": 2, "text_contains": "factual"},
+                {"document_filename": "rag_2020", "relevance": 1, "text_contains": "knowledge"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q20",
+            "query": "What are the advantages of Vision Transformers over CNNs?",
+            "type": "comparative",
+            "expected_docs": [
+                {"document_filename": "vit_2020", "relevance": 2, "text_contains": "CNN"},
+                {"document_filename": "vit_2020", "relevance": 1, "text_contains": "pre-training"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q21",
+            "query": "What is Berkshire Hathaway's investment philosophy according to Warren Buffett?",
+            "type": "lookup",
+            "expected_docs": [
+                {"document_filename": "berkshire_2022", "relevance": 2, "text_contains": "Buffett"},
+                {"document_filename": "berkshire_2023", "relevance": 1, "text_contains": "investment"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q22",
+            "query": "How does chain of thought prompting improve mathematical reasoning?",
+            "type": "factual",
+            "expected_docs": [
+                {"document_filename": "chain_of_thought_2022", "relevance": 2, "text_contains": "math"},
+                {"document_filename": "chain_of_thought_2022", "relevance": 1, "text_contains": "reasoning"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q23",
+            "query": "What is the Mixture of Experts routing mechanism?",
+            "type": "factual",
+            "expected_docs": [
+                {"document_filename": "mixture_of_experts_2024", "relevance": 2, "text_contains": "router"},
+                {"document_filename": "mixture_of_experts_2024", "relevance": 1, "text_contains": "expert"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q24",
+            "query": "What are the environmental commitments of GSK?",
+            "type": "lookup",
+            "expected_docs": [
+                {"document_filename": "gsk_2024", "relevance": 2, "text_contains": "environment"},
+                {"document_filename": "gsk_2024", "relevance": 1, "text_contains": "sustainability"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q25",
+            "query": "How does PPL manage climate risk in its operations?",
+            "type": "lookup",
+            "expected_docs": [
+                {"document_filename": "ppl_2024", "relevance": 2, "text_contains": "climate"},
+                {"document_filename": "ppl_2024", "relevance": 1, "text_contains": "risk"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q26",
+            "query": "What is few-shot learning in large language models?",
+            "type": "definitional",
+            "expected_docs": [
+                {"document_filename": "gpt3_2020", "relevance": 2, "text_contains": "few-shot"},
+                {"document_filename": "gpt3_2020", "relevance": 1, "text_contains": "in-context"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q27",
+            "query": "How does positional encoding work in transformers?",
+            "type": "factual",
+            "expected_docs": [
+                {"document_filename": "attention_2017", "relevance": 2, "text_contains": "positional"},
+                {"document_filename": "attention_2017", "relevance": 1, "text_contains": "encoding"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q28",
+            "query": "What is Unilever's sustainable living plan?",
+            "type": "lookup",
+            "expected_docs": [
+                {"document_filename": "unilever_2024", "relevance": 2, "text_contains": "sustainable"},
+                {"document_filename": "unilever_2024", "relevance": 1, "text_contains": "plan"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q29",
+            "query": "Compare the training approaches of BERT and GPT-3",
+            "type": "comparative",
+            "expected_docs": [
+                {"document_filename": "bert_2018", "relevance": 2, "text_contains": "masked"},
+                {"document_filename": "gpt3_2020", "relevance": 2, "text_contains": "autoregressive"}
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q30",
+            "query": "What is the cash position of Berkshire Hathaway at end of 2024?",
+            "type": "factual",
+            "expected_docs": [
+                {"document_filename": "berkshire_2024", "relevance": 2, "text_contains": "cash"},
+                {"document_filename": "berkshire_2024", "relevance": 1, "text_contains": "billion"}
+            ],
+            "min_relevant": 1
+        }
+    ]
+}

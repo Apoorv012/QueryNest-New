@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import numpy as np
 from fastembed import TextEmbedding
 
 from .base import BaseEmbedder
+
+_cached_embedder: FastEmbedEmbedder | None = None
 
 
 class FastEmbedEmbedder(BaseEmbedder):
@@ -17,6 +21,13 @@ class FastEmbedEmbedder(BaseEmbedder):
         self._model_name = model_name
         self._model = TextEmbedding(model_name=model_name)
         self._embedding_dim = self._model.embedding_size
+
+    @classmethod
+    def get_instance(cls) -> FastEmbedEmbedder:
+        global _cached_embedder
+        if _cached_embedder is None:
+            _cached_embedder = cls()
+        return _cached_embedder
 
     def embed(self, texts: list[str], batch_size: int = 256) -> np.ndarray:
         """
