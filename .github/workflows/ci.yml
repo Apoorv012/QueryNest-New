@@ -11,7 +11,7 @@ jobs:
         with:
           python-version: "3.14"
           cache: "pip"
-      - run: pip install -r requirements.txt ruff mypy
+      - run: pip install -r requirements.txt ruff mypy types-psycopg2
       - run: ruff check .
       - run: mypy core/
       - run: pytest
