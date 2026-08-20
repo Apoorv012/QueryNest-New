@@ -58,6 +58,31 @@ def load_golden(path: Path) -> list[EvalQuery]:
     return queries
 
 
+EVAL_USER_ID = "golden_user"
+
+
+def get_document_filename_map(user_id: str = EVAL_USER_ID) -> dict[str, str]:
+    """Map document_id -> normalized filename (no extension) for the eval user.
+
+    Search results only carry the store-assigned `document_id` (a random hex
+    id assigned at ingest time, unrelated to the original filename), while
+    the golden set identifies expected docs by `document_filename` (e.g.
+    "attention_2017"). This bridges the two via GET /documents.
+    """
+    import requests
+
+    base = os.environ.get("QUERYNEST_API_URL", "http://localhost:8000")
+    resp = requests.get(f"{base}/documents", params={"user_id": user_id}, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+    mapping = {}
+    for d in data.get("documents", []):
+        filename = d.get("filename", "")
+        stem = Path(filename).stem
+        mapping[d["document_id"]] = stem
+    return mapping
+
+
 def get_git_commit() -> str:
     try:
         result = subprocess.run(
@@ -69,13 +94,15 @@ def get_git_commit() -> str:
         return "unknown"
 
 
-def run_search(query_text: str, top_k: int = 10) -> tuple[list[dict], float]:
+def run_search(
+    query_text: str, top_k: int = 10, user_id: str = EVAL_USER_ID
+) -> tuple[list[dict], float]:
     import requests
     base = os.environ.get("QUERYNEST_API_URL", "http://localhost:8000")
     start = time.perf_counter()
     resp = requests.post(
-        f"{base}/api/search",
-        json={"query": query_text, "top_k": top_k},
+        f"{base}/search",
+        json={"query": query_text, "top_k": top_k, "user_id": user_id},
         timeout=30,
     )
     elapsed_ms = (time.perf_counter() - start) * 1000
@@ -83,26 +110,32 @@ def run_search(query_text: str, top_k: int = 10) -> tuple[list[dict], float]:
     return data.get("results", []), elapsed_ms
 
 
-def run_eval(golden_path: Path, top_k: int = 10) -> list[QueryResult]:
+def run_eval(
+    golden_path: Path, top_k: int = 10, user_id: str = EVAL_USER_ID
+) -> list[QueryResult]:
     from core.eval.metrics import mrr, ndcg_at_k, precision_at_k, recall_at_k
 
     queries = load_golden(golden_path)
+    id_to_filename = get_document_filename_map(user_id)
     results = []
 
     for q in queries:
-        raw_results, latency_ms = run_search(q.query, top_k)
+        raw_results, latency_ms = run_search(q.query, top_k, user_id)
 
-        retrieved_filenames = [r.get("document_id", "") for r in raw_results]
+        # Search returns store-assigned document_id; the golden set identifies
+        # expected docs by filename stem, so translate before comparing.
+        retrieved_filenames = [
+            id_to_filename.get(r.get("document_id", ""), r.get("document_id", ""))
+            for r in raw_results
+        ]
         retrieved_full = raw_results
 
         relevant_set = {e.document_filename for e in q.expected_docs if e.relevance >= 1}
 
         pr = QueryResult(
             query=q,
-            retrieved_doc_ids=retrieved_filenames,
-            retrieved_doc_filenames=[
-                r.get("document_id", "") for r in retrieved_full
-            ],
+            retrieved_doc_ids=[r.get("document_id", "") for r in retrieved_full],
+            retrieved_doc_filenames=retrieved_filenames,
             latency_ms=latency_ms,
         )
 
@@ -111,11 +144,10 @@ def run_eval(golden_path: Path, top_k: int = 10) -> list[QueryResult]:
             pr.recalls[k] = recall_at_k(retrieved_filenames, relevant_set, k)
 
         relevances = []
-        for r in retrieved_full:
-            doc_id = r.get("document_id", "")
+        for doc_filename in retrieved_filenames:
             rel = 0
             for e in q.expected_docs:
-                if e.document_filename == doc_id:
+                if e.document_filename == doc_filename:
                     rel = max(rel, e.relevance)
             relevances.append(rel)
         pr.ndcg[10] = ndcg_at_k(relevances, 10)

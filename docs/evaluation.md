@@ -123,19 +123,20 @@ MRR = 1 / rank_of_first_relevant
             "id": "q1",
             "query": "What is the time complexity of quicksort?",
             "type": "factual",
-            "expected_chunks": [
+            "expected_docs": [
                 {
-                    "document": "algorithms_paper.pdf",
-                    "chunk_index": 5,
+                    "document_filename": "algorithms_paper.pdf",
                     "relevance": 2,
                     "text_contains": "O(n log n)"
                 }
             ],
-            "min_relevant_chunks": 1
+            "min_relevant": 1
         }
     ]
 }
 ```
+
+Parsed by `core.eval.runner.load_golden()`. Relevance is judged per **document**, matched against `document_filename` (the original filename's stem, e.g. `attention_2017`). Search results only carry the store-assigned `document_id` (a random hex id, unrelated to the filename), so `run_eval()` resolves `document_id -> filename` via `GET /documents` (`get_document_filename_map()`) before comparing against the golden set. `text_contains` is currently informational only and isn't checked by the runner.
 
 ### Relevance Scale
 
@@ -158,40 +159,47 @@ MRR = 1 / rank_of_first_relevant
 ### Step 1: Index Test PDFs
 
 ```bash
-# Index all test PDFs
-python -m core.main index tests/fixtures/papers/
+# Download fixture PDFs (academic + accounting) into data/eval/pdfs/<category>/
+python -m core.eval.download_pdfs
+
+# With the API running (uvicorn core.api.main:app), re-index them for the
+# dedicated golden_user, replacing anything previously seeded:
+curl -X POST http://localhost:8000/eval/seed
+curl http://localhost:8000/eval/seed/{job_id}/status   # poll until done
 ```
+
+`POST /eval/seed` (`core/api/routes/eval.py`) walks `data/eval/pdfs/`, extracts, chunks, date-detects, embeds, and stores each PDF under a fixed `golden_user`, tracked as a background job via `core/api/jobs.py`. Note: none of the API routes are mounted under an `/api` prefix — `main.py` includes `api_router` with no prefix, so every route (`/search`, `/documents`, `/upload/bulk`, `/eval/seed`, ...) hangs directly off the app root.
 
 ### Step 2: Run Evaluation
 
 ```bash
-# Run evaluation against golden dataset
-python -m core.eval.run
+# Run evaluation against data/eval/golden.json (requires the API running)
+python -m core.eval
 ```
 
 ### Step 3: Generate Report
 
-Output:
-```
-QueryNest Evaluation Report
-===========================
-Queries: 100
-Documents: 30
+Output (`core/eval/report.py: print_report`, printed to console) plus a JSON file written to `reports/report_<timestamp>_<git_commit>.json` (`generate_report`), containing aggregate metrics, latency, a by-type breakdown, the 5 worst queries by MRR, and full per-query results:
 
-Precision@5:  0.78
-Recall@10:    0.85
-NDCG@10:      0.82
-MRR:          0.91
+```
+QueryNest Evaluation Report (100 queries)
+==================================================
+  Precision@5:  0.7800
+  Precision@10: 0.7200
+  Recall@5:     0.6500
+  Recall@10:    0.8500
+  NDCG@10:      0.8200
+  MRR:          0.9100
 
 By Query Type:
-  Factual:     P@5=0.82, R@10=0.88
-  Definitional: P@5=0.75, R@10=0.83
-  Comparative:  P@5=0.71, R@10=0.79
-  Lookup:       P@5=0.80, R@10=0.87
+  factual         P@5=0.82  R@10=0.88  (n=40)
+  definitional    P@5=0.75  R@10=0.83  (n=30)
+  comparative     P@5=0.71  R@10=0.79  (n=20)
+  procedural      P@5=0.80  R@10=0.87  (n=10)
 
 Worst Queries:
-  q42: "Compare consensus algorithms" (P@5=0.40)
-  q67: "What is vector quantization?" (R@10=0.50)
+  q42: "Compare consensus algorithms" (MRR=0.40, P@5=0.40)
+  q67: "What is vector quantization?" (MRR=0.50, P@5=0.50)
 ```
 
 ### Step 4: Analyze Failures
@@ -241,14 +249,12 @@ For each low-scoring query:
 ## Running Evaluation
 
 ```bash
-# Run all evaluation tests
+# Unit-test the metric functions (precision/recall/ndcg/mrr)
 pytest tests/eval/ -v
 
-# Run specific metric
-pytest tests/eval/test_precision.py -v
-
-# Generate evaluation report
-python -m core.eval.report
+# Run the full evaluation against the golden set (API must be running) and
+# print + save a report
+python -m core.eval
 ```
 
 ---
