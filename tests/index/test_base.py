@@ -1,6 +1,13 @@
 import pytest
 
-from core.index.base import SearchResult, VectorStore
+from core.index.base import (
+    DATE_MATCH_IN_RANGE,
+    DATE_MATCH_OUT_OF_RANGE,
+    DATE_MATCH_UNDATED,
+    DATE_MATCH_UNFILTERED,
+    SearchResult,
+    VectorStore,
+)
 
 
 class TestVectorStore:
@@ -30,16 +37,21 @@ class TestSearchResult:
         r = SearchResult(chunk_id=0, document_id="", text="", heading="", score=0.99, page=0)
         assert isinstance(r.score, float)
 
-    def test_within_date_range_defaults_true(self):
-        # D8: a result is "in range" unless explicitly marked as a backfill
-        # candidate, so unfiltered searches (and filtered searches that
-        # don't need backfill) need no special-casing.
+    def test_date_match_defaults_to_unfiltered(self):
+        # D12: with no date filter applied, a result makes no claim about
+        # dates at all — it is neither "in range" nor "out of range".
         r = SearchResult(chunk_id=0, document_id="", text="", heading="", score=0.99, page=0)
-        assert r.within_date_range is True
+        assert r.date_match == DATE_MATCH_UNFILTERED
 
-    def test_within_date_range_can_be_set_false(self):
-        r = SearchResult(
-            chunk_id=0, document_id="", text="", heading="", score=0.99, page=0,
-            within_date_range=False,
-        )
-        assert r.within_date_range is False
+    def test_date_match_carries_three_distinct_states(self):
+        # The whole point of D12: "undated" must be distinguishable from
+        # "out of range". A boolean collapsed them and claimed a confidence
+        # the system does not have about undated documents.
+        states = {DATE_MATCH_IN_RANGE, DATE_MATCH_UNDATED, DATE_MATCH_OUT_OF_RANGE}
+        assert len(states) == 3
+        for state in states:
+            r = SearchResult(
+                chunk_id=0, document_id="", text="", heading="", score=0.99, page=0,
+                date_match=state,
+            )
+            assert r.date_match == state

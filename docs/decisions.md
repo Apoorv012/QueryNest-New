@@ -199,3 +199,48 @@ other change. Full analysis in `improvements.md`.
 
 **Risk:** HNSW indexes are slower to build and use more memory than IVFFlat. At personal-library
 scale this is immaterial; revisit only if index build time becomes noticeable.
+
+---
+
+## D12: Date Filtering Is Served as Three Tiers, Not Two
+
+**Decision:** A date-filtered search is served as three successive tiers, in descending order of
+confidence, topping up until `top_k` is reached:
+
+1. **`in_range`** — the document has a date, and it falls inside the requested range.
+2. **`undated`** — the document has no detectable date, so it *might* match.
+3. **`out_of_range`** — the document has a date, and it falls outside the range.
+
+Each result carries a `date_match` field naming its tier. This supersedes the boolean
+`within_date_range` introduced with D8.
+
+**Why:** D9 admitted undated documents by widening the predicate to
+`(document_date IS NULL OR document_date >= %s)`. That fixed the disappearance problem but
+created a subtler one: undated documents were mixed into the top tier and reported as
+`within_date_range: true` — asserting a match the system never verified. **7 of the 17 corpus
+documents have no detectable date**, so this was the common case, not an edge case.
+
+The three tiers encode what is actually known. An undated document might be the one the user
+wants. A document dated 2019 when the user asked for 2023 is a *verified* non-match. "Unknown"
+therefore belongs above "known wrong", and a two-state flag cannot express that ordering.
+
+**Tier order beats similarity score**, deliberately: a high-scoring out-of-range document ranks
+below a lower-scoring in-range one. The date expression is treated as a strong preference rather
+than either a hard filter or a mere tiebreak.
+
+**Alternatives considered:**
+- *Hard filter (no backfill):* a user typing "last year" who gets 2 results is worse served than
+  one who gets 2 plus near-misses they can judge. Rejected as D8.
+- *Two tiers (in-range, then everything else):* the previous behaviour. Simpler, but collapses
+  "unknown" and "known wrong" — losing exactly the distinction a user needs to judge a result.
+- *Boost rather than tier:* blend a date-proximity term into the similarity score. Rejected as
+  untunable without a much larger temporal query set, and it makes results hard to explain.
+
+**Implementation note:** the three tier predicates are mutually exclusive in SQL
+(`IS NULL` / `IS NOT NULL` + `>=,<=` / `IS NOT NULL` + `<,>`), so tier results concatenate
+without de-duplication. Each tier requests only the shortfall (`top_k - len(results)`), and
+later tiers are skipped entirely once `top_k` is met. The route stamps `date_match` itself
+rather than trusting the store, so the label cannot drift per implementation.
+
+**Risk:** the UI must render the tier boundaries visibly. Silently mixing tiers would make the
+date filter feel broken — which is the same failure D8 warned about, now with three groups.

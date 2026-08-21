@@ -4,6 +4,13 @@ from datetime import date
 
 import numpy as np
 
+# How a result relates to the query's date filter, in descending confidence.
+# Ordering matters: tiers are served in this sequence (D12).
+DATE_MATCH_IN_RANGE = "in_range"        # dated, and inside the requested range
+DATE_MATCH_UNDATED = "undated"          # no date known - might match
+DATE_MATCH_OUT_OF_RANGE = "out_of_range"  # dated, and outside the range
+DATE_MATCH_UNFILTERED = "unfiltered"    # no date filter was applied at all
+
 
 @dataclass
 class SourceBlock:
@@ -23,11 +30,12 @@ class SearchResult:
     page: int
     document_date: date | None = None
     source_blocks: list[SourceBlock] = field(default_factory=list)
-    # D8: True when this result satisfies the query's date filter (or no
-    # date filter was applied). False marks a result backfilled from an
-    # unfiltered search to make up a shortfall — see
-    # core/api/routes/search.py.
-    within_date_range: bool = True
+    # D8/D12: how this result relates to the query's date filter. Three
+    # states, not two: an undated document *might* match the requested range
+    # (we cannot tell), whereas a document dated outside it is a known
+    # non-match. Collapsing those into one boolean claimed a confidence the
+    # system does not have. See core/api/routes/search.py.
+    date_match: str = DATE_MATCH_UNFILTERED
 
 
 @dataclass
@@ -66,6 +74,7 @@ class VectorStore(ABC):
         top_k: int = 5,
         date_from: date | None = None,
         date_to: date | None = None,
+        date_mode: str | None = None,
     ) -> list[SearchResult]: ...
 
     @abstractmethod

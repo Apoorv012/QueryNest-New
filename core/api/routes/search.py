@@ -5,6 +5,12 @@ from datetime import date
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from core.index.base import (
+    DATE_MATCH_IN_RANGE,
+    DATE_MATCH_OUT_OF_RANGE,
+    DATE_MATCH_UNDATED,
+)
+
 router = APIRouter()
 
 from core.index.config import is_store_configured
@@ -44,44 +50,50 @@ def search(body: SearchRequest):
     query_embedding = embedder.embed_query(parsed.query)
 
     store = get_vector_store()
-    results = store.search(
-        query_embedding,
-        user_id=body.user_id,
-        top_k=body.top_k,
-        date_from=date_from,
-        date_to=date_to,
-    )
-
-    # D8: a date expression is a hint, not a hard constraint. When it filters
-    # the result set below top_k, backfill the shortfall from an unfiltered
-    # search rather than leaving the user with fewer than they asked for.
-    # Backfilled results are appended after the in-range ones (both in score
-    # order) and clearly marked via `within_date_range`.
     date_filter_applied = date_from is not None or date_to is not None
-    if date_filter_applied:
-        for r in results:
-            r.within_date_range = True
 
-        if len(results) < body.top_k:
-            seen_chunk_ids = {r.chunk_id for r in results}
-            # Oversample so that even if every unfiltered hit duplicates an
-            # in-range result already kept, enough new ones remain to fill
-            # up to top_k.
-            unfiltered = store.search(
+    if not date_filter_applied:
+        results = store.search(
+            query_embedding,
+            user_id=body.user_id,
+            top_k=body.top_k,
+        )
+    else:
+        # D12: a date expression is a hint, not a hard constraint, so a short
+        # result set is topped up from progressively weaker tiers rather than
+        # left short. The tiers are served in descending confidence:
+        #
+        #   1. in_range      - dated, and inside the requested range
+        #   2. undated       - no date known, so it *might* match
+        #   3. out_of_range  - dated, and known to fall outside
+        #
+        # Undated documents rank above out-of-range ones deliberately: an
+        # unknown date might be the one the user wants, whereas a date outside
+        # the range is a verified non-match. (7 of 17 corpus documents
+        # currently have no detectable date, so this tier is not an edge case.)
+        # The tiers are mutually exclusive in SQL, so no chunk can repeat.
+        results = []
+        for mode in (
+            DATE_MATCH_IN_RANGE,
+            DATE_MATCH_UNDATED,
+            DATE_MATCH_OUT_OF_RANGE,
+        ):
+            if len(results) >= body.top_k:
+                break
+            tier = store.search(
                 query_embedding,
                 user_id=body.user_id,
-                top_k=body.top_k + len(results),
-                date_from=None,
-                date_to=None,
+                top_k=body.top_k - len(results),
+                date_from=date_from,
+                date_to=date_to,
+                date_mode=mode,
             )
-            for r in unfiltered:
-                if len(results) >= body.top_k:
-                    break
-                if r.chunk_id in seen_chunk_ids:
-                    continue
-                r.within_date_range = False
-                seen_chunk_ids.add(r.chunk_id)
-                results.append(r)
+            # Stamp the tier here rather than trusting the store to do it:
+            # the route is what decided which tier this call represents, so
+            # the label cannot drift if a store implementation forgets.
+            for r in tier:
+                r.date_match = mode
+            results.extend(tier)
 
     return {
         "query": body.query,
@@ -97,7 +109,7 @@ def search(body: SearchRequest):
                 "score": r.score,
                 "page": r.page,
                 "document_date": r.document_date.isoformat() if r.document_date else None,
-                "within_date_range": r.within_date_range,
+                "date_match": r.date_match,
                 "source_blocks": [
                     {"text": sb.text, "page": sb.page, "bbox": sb.bbox, "type": sb.type}
                     for sb in r.source_blocks

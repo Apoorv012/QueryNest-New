@@ -13,3 +13,4 @@ node_modules/
 data/eval/candidates/
 data/candidates/
 data/eval/pdfs-oversized/
+.env.session-backup

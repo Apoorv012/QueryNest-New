@@ -310,10 +310,11 @@ class TestSearch:
             assert resp.json()["detail"] == "Query cannot be empty"
 
 
-class TestSearchBackfill:
-    """D8: date-filtered results short of top_k get backfilled from an
-    unfiltered search, appended after the in-range results and clearly
-    marked via `within_date_range` (docs/plan.md D8 / task 2.6)."""
+class TestSearchTieredDates:
+    """D12: a date filter is served as three tiers in descending confidence —
+    in_range, then undated, then out_of_range — topping up to top_k. Undated
+    documents rank above out-of-range ones because an unknown date might match
+    the request, whereas a date outside the range is a verified non-match."""
 
     @staticmethod
     def _result(chunk_id, score):
@@ -332,81 +333,92 @@ class TestSearchBackfill:
         fake_embedder = MagicMock()
         fake_embedder.embed_query.return_value = [0.0] * 384
 
-        with patch("core.api.routes.search._has_pgvector", True), \
-             patch("core.index.get_vector_store", return_value=fake_store), \
-             patch(
+        with patch("core.api.routes.search._has_pgvector", True),              patch("core.index.get_vector_store", return_value=fake_store),              patch(
                  "core.embedding.FastEmbedEmbedder.get_instance",
                  return_value=fake_embedder,
              ):
             return client.post("/search", json=body)
 
-    def test_backfills_short_date_filtered_results(self, client):
+    def test_tiers_are_served_in_confidence_order(self, client):
+        from core.index.base import (
+            DATE_MATCH_IN_RANGE,
+            DATE_MATCH_OUT_OF_RANGE,
+            DATE_MATCH_UNDATED,
+        )
+
         in_range = [self._result(1, 0.9), self._result(2, 0.8)]
-        # The unfiltered rerun naturally includes the same top hits again
-        # (chunk_id 1, 2) plus new ones — duplicates must be skipped.
-        unfiltered = [
-            self._result(1, 0.9),
-            self._result(2, 0.8),
-            self._result(3, 0.7),
-            self._result(4, 0.6),
-            self._result(5, 0.5),
-        ]
+        undated = [self._result(3, 0.95)]      # higher score, still ranked below
+        out_of_range = [self._result(4, 0.99)]  # highest score, ranked last
         fake_store = MagicMock()
-        fake_store.search.side_effect = [in_range, unfiltered]
+        fake_store.search.side_effect = [in_range, undated, out_of_range]
 
         resp = self._search(
-            client,
-            fake_store,
+            client, fake_store,
             {"query": "invoices in 2020", "top_k": 5, "user_id": "u1"},
         )
 
         assert resp.status_code == 200
         results = resp.json()["results"]
-        assert [r["chunk_id"] for r in results] == [1, 2, 3, 4, 5]
-        assert [r["within_date_range"] for r in results] == [
-            True, True, False, False, False,
+        assert [r["chunk_id"] for r in results] == [1, 2, 3, 4]
+        # Tier order beats raw similarity: chunk 4 scores highest but is a
+        # verified non-match on date, so it comes last.
+        assert [r["date_match"] for r in results] == [
+            DATE_MATCH_IN_RANGE, DATE_MATCH_IN_RANGE,
+            DATE_MATCH_UNDATED, DATE_MATCH_OUT_OF_RANGE,
         ]
+        assert fake_store.search.call_count == 3
+        modes = [c.kwargs["date_mode"] for c in fake_store.search.call_args_list]
+        assert modes == [DATE_MATCH_IN_RANGE, DATE_MATCH_UNDATED, DATE_MATCH_OUT_OF_RANGE]
 
-        assert fake_store.search.call_count == 2
-        second_call = fake_store.search.call_args_list[1]
-        assert second_call.kwargs["date_from"] is None
-        assert second_call.kwargs["date_to"] is None
-        # Oversampled by the shortfall (top_k=5 + 2 already-kept in-range
-        # results) so duplicates don't starve the backfill.
-        assert second_call.kwargs["top_k"] == 7
-
-    def test_no_second_query_when_already_at_top_k(self, client):
+    def test_later_tiers_are_skipped_once_top_k_is_met(self, client):
         in_range = [self._result(i, 1.0 - i / 10) for i in range(5)]
         fake_store = MagicMock()
         fake_store.search.return_value = in_range
 
         resp = self._search(
-            client,
-            fake_store,
+            client, fake_store,
             {"query": "invoices in 2020", "top_k": 5, "user_id": "u1"},
         )
 
         assert resp.status_code == 200
-        results = resp.json()["results"]
-        assert len(results) == 5
-        assert all(r["within_date_range"] for r in results)
+        assert len(resp.json()["results"]) == 5
+        # in_range alone satisfied top_k, so the undated and out_of_range
+        # tiers are never queried.
         fake_store.search.assert_called_once()
 
-    def test_no_backfill_without_date_filter(self, client):
-        # No date expression in the query and no explicit date_from/date_to
-        # -> behaves exactly as before: single query, no backfill logic.
-        few_results = [self._result(1, 0.9), self._result(2, 0.8)]
+    def test_each_tier_requests_only_the_shortfall(self, client):
         fake_store = MagicMock()
-        fake_store.search.return_value = few_results
+        fake_store.search.side_effect = [
+            [self._result(1, 0.9), self._result(2, 0.8)],  # in_range: 2 of 5
+            [self._result(3, 0.7)],                        # undated: 1 more
+            [self._result(4, 0.6), self._result(5, 0.5)],  # out_of_range
+        ]
 
         resp = self._search(
-            client,
-            fake_store,
+            client, fake_store,
+            {"query": "invoices in 2020", "top_k": 5, "user_id": "u1"},
+        )
+
+        assert resp.status_code == 200
+        assert len(resp.json()["results"]) == 5
+        top_ks = [c.kwargs["top_k"] for c in fake_store.search.call_args_list]
+        assert top_ks == [5, 3, 2]
+
+    def test_no_tiering_without_a_date_filter(self, client):
+        from core.index.base import DATE_MATCH_UNFILTERED
+
+        few = [self._result(1, 0.9), self._result(2, 0.8)]
+        fake_store = MagicMock()
+        fake_store.search.return_value = few
+
+        resp = self._search(
+            client, fake_store,
             {"query": "insurance policy", "top_k": 5, "user_id": "u1"},
         )
 
         assert resp.status_code == 200
         results = resp.json()["results"]
         assert len(results) == 2
-        assert all(r["within_date_range"] for r in results)
+        assert all(r["date_match"] == DATE_MATCH_UNFILTERED for r in results)
         fake_store.search.assert_called_once()
+        assert "date_mode" not in fake_store.search.call_args.kwargs

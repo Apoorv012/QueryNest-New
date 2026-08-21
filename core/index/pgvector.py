@@ -6,7 +6,16 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .base import DocumentInfo, SearchResult, SourceBlock, VectorStore
+from .base import (
+    DATE_MATCH_IN_RANGE,
+    DATE_MATCH_OUT_OF_RANGE,
+    DATE_MATCH_UNDATED,
+    DATE_MATCH_UNFILTERED,
+    DocumentInfo,
+    SearchResult,
+    SourceBlock,
+    VectorStore,
+)
 
 if TYPE_CHECKING:
     import psycopg2.extensions
@@ -149,6 +158,7 @@ class PgVectorStore(VectorStore):
         top_k: int = 5,
         date_from: date | None = None,
         date_to: date | None = None,
+        date_mode: str | None = None,
     ) -> list[SearchResult]:
         conn = self._connect()
         try:
@@ -156,15 +166,35 @@ class PgVectorStore(VectorStore):
 
             vec_str = "[" + ",".join(f"{v:.6f}" for v in query_embedding) + "]"
 
-            conditions = [sql.SQL("user_id = %s")]
+            conditions: list[sql.Composable] = [sql.SQL("user_id = %s")]
             params: list = [user_id]
 
-            if date_from is not None:
-                conditions.append(sql.SQL("(document_date IS NULL OR document_date >= %s)"))
-                params.append(date_from)
-            if date_to is not None:
-                conditions.append(sql.SQL("(document_date IS NULL OR document_date <= %s)"))
-                params.append(date_to)
+            # D12: three mutually exclusive tiers rather than one fuzzy
+            # predicate. Because the tiers cannot overlap, results from
+            # successive tiers never need de-duplicating against each other.
+            if date_mode == DATE_MATCH_UNDATED:
+                conditions.append(sql.SQL("document_date IS NULL"))
+            elif date_mode == DATE_MATCH_IN_RANGE:
+                conditions.append(sql.SQL("document_date IS NOT NULL"))
+                if date_from is not None:
+                    conditions.append(sql.SQL("document_date >= %s"))
+                    params.append(date_from)
+                if date_to is not None:
+                    conditions.append(sql.SQL("document_date <= %s"))
+                    params.append(date_to)
+            elif date_mode == DATE_MATCH_OUT_OF_RANGE:
+                conditions.append(sql.SQL("document_date IS NOT NULL"))
+                bounds: list[sql.Composable] = []
+                if date_from is not None:
+                    bounds.append(sql.SQL("document_date < %s"))
+                    params.append(date_from)
+                if date_to is not None:
+                    bounds.append(sql.SQL("document_date > %s"))
+                    params.append(date_to)
+                if bounds:
+                    conditions.append(
+                        sql.SQL("({})").format(sql.SQL(" OR ").join(bounds))
+                    )
 
             where = sql.SQL(" AND ").join(conditions)
 
@@ -205,6 +235,7 @@ class PgVectorStore(VectorStore):
                         page=row[4],
                         document_date=row[5],
                         source_blocks=sb_list,
+                        date_match=date_mode or DATE_MATCH_UNFILTERED,
                     ))
                 return results
         finally:
