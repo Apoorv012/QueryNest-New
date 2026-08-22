@@ -1,0 +1,934 @@
+{
+  "timestamp": "20260822_141111",
+  "git_commit": "a8e0d5d",
+  "total_queries": 49,
+  "metrics": {
+    "precision_at_5": 0.2694,
+    "precision_at_10": 0.1367,
+    "recall_at_5": 0.9898,
+    "recall_at_10": 1.0,
+    "ndcg_at_10": 0.9588,
+    "mrr": 0.9541
+  },
+  "latency_ms_avg": 61.5,
+  "by_type": {
+    "comparative": {
+      "count": 7,
+      "precision_at_5": 0.2571,
+      "recall_at_10": 1.0
+    },
+    "definitional": {
+      "count": 11,
+      "precision_at_5": 0.2364,
+      "recall_at_10": 1.0
+    },
+    "factual": {
+      "count": 12,
+      "precision_at_5": 0.2167,
+      "recall_at_10": 1.0
+    },
+    "lookup": {
+      "count": 7,
+      "precision_at_5": 0.3714,
+      "recall_at_10": 1.0
+    },
+    "procedural": {
+      "count": 5,
+      "precision_at_5": 0.24,
+      "recall_at_10": 1.0
+    },
+    "temporal": {
+      "count": 7,
+      "precision_at_5": 0.3429,
+      "recall_at_10": 1.0
+    }
+  },
+  "worst_queries": [
+    {
+      "query_id": "q36",
+      "query": "internship at an AI company doing automated ID checks",
+      "mrr": 0.25,
+      "precision_at_5": 0.2
+    },
+    {
+      "query_id": "q9",
+      "query": "Compare attention mechanisms in transformers vs RNNs",
+      "mrr": 0.5,
+      "precision_at_5": 0.4
+    },
+    {
+      "query_id": "q17",
+      "query": "How do transformers handle long sequences?",
+      "mrr": 0.5,
+      "precision_at_5": 0.2
+    },
+    {
+      "query_id": "q40",
+      "query": "graduate trainee program with no service bond",
+      "mrr": 0.5,
+      "precision_at_5": 0.2
+    },
+    {
+      "query_id": "q1",
+      "query": "What is the attention mechanism in transformers?",
+      "mrr": 1.0,
+      "precision_at_5": 0.4
+    }
+  ],
+  "query_results": [
+    {
+      "query_id": "q1",
+      "query": "What is the attention mechanism in transformers?",
+      "type": "factual",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 1444.4
+    },
+    {
+      "query_id": "q2",
+      "query": "How does BERT pre-training work?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 23.2
+    },
+    {
+      "query_id": "q4",
+      "query": "How does the Vision Transformer process images?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 26.3
+    },
+    {
+      "query_id": "q5",
+      "query": "What is Retrieval-Augmented Generation?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 24.0
+    },
+    {
+      "query_id": "q6",
+      "query": "What is chain of thought prompting?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 22.7
+    },
+    {
+      "query_id": "q7",
+      "query": "What is LLaMA and what datasets was it trained on?",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 24.6
+    },
+    {
+      "query_id": "q8",
+      "query": "How does the mixture of experts architecture work?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 32.2
+    },
+    {
+      "query_id": "q9",
+      "query": "Compare attention mechanisms in transformers vs RNNs",
+      "type": "comparative",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 0.5,
+      "latency_ms": 24.5
+    },
+    {
+      "query_id": "q10",
+      "query": "What is the difference between BERT and GPT?",
+      "type": "comparative",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 35.3
+    },
+    {
+      "query_id": "q11",
+      "query": "What were Berkshire Hathaway's operating earnings for 2023?",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 30.1
+    },
+    {
+      "query_id": "q15",
+      "query": "Compare Berkshire Hathaway's performance across 2022 and 2023",
+      "type": "comparative",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 25.4
+    },
+    {
+      "query_id": "q16",
+      "query": "What scaling laws apply to large language models?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 29.1
+    },
+    {
+      "query_id": "q17",
+      "query": "How do transformers handle long sequences?",
+      "type": "procedural",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 0.5,
+      "latency_ms": 35.9
+    },
+    {
+      "query_id": "q18",
+      "query": "What is the role of pre-training in NLP models?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 51.2
+    },
+    {
+      "query_id": "q19",
+      "query": "How does Retrieval-Augmented Generation improve factual accuracy?",
+      "type": "procedural",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 24.9
+    },
+    {
+      "query_id": "q20",
+      "query": "What are the advantages of Vision Transformers over CNNs?",
+      "type": "comparative",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 27.8
+    },
+    {
+      "query_id": "q21",
+      "query": "What is Berkshire Hathaway's investment philosophy according to Warren Buffett?",
+      "type": "lookup",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 35.1
+    },
+    {
+      "query_id": "q22",
+      "query": "How does chain of thought prompting improve mathematical reasoning?",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 28.6
+    },
+    {
+      "query_id": "q23",
+      "query": "What is the Mixture of Experts routing mechanism?",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 37.9
+    },
+    {
+      "query_id": "q27",
+      "query": "How does positional encoding work in transformers?",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 44.5
+    },
+    {
+      "query_id": "q29",
+      "query": "Compare the training approaches of BERT and GPT",
+      "type": "comparative",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 29.1
+    },
+    {
+      "query_id": "q31",
+      "query": "internship that needs Docker and Kubernetes experience",
+      "type": "lookup",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 46.1
+    },
+    {
+      "query_id": "q32",
+      "query": "which role asks for AWS and Jenkins CI/CD skills",
+      "type": "lookup",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 51.1
+    },
+    {
+      "query_id": "q33",
+      "query": "cloud engineering job working across multiple cloud providers",
+      "type": "lookup",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 41.1
+    },
+    {
+      "query_id": "q34",
+      "query": "company building a unified customer experience management platform",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 22.9
+    },
+    {
+      "query_id": "q35",
+      "query": "company working on identity verification and fraud prevention",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 22.0
+    },
+    {
+      "query_id": "q36",
+      "query": "internship at an AI company doing automated ID checks",
+      "type": "lookup",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 0.25,
+      "latency_ms": 28.3
+    },
+    {
+      "query_id": "q37",
+      "query": "payments company that helped build UPI infrastructure",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 30.0
+    },
+    {
+      "query_id": "q38",
+      "query": "job at a fintech processing digital transactions in India",
+      "type": "lookup",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 43.5
+    },
+    {
+      "query_id": "q39",
+      "query": "campus placement process with aptitude and technical interview rounds",
+      "type": "procedural",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 33.7
+    },
+    {
+      "query_id": "q40",
+      "query": "graduate trainee program with no service bond",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 0.5,
+      "latency_ms": 32.5
+    },
+    {
+      "query_id": "q41",
+      "query": "KV cache checkpointing to recover from an Android process kill",
+      "type": "definitional",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 41.7
+    },
+    {
+      "query_id": "q42",
+      "query": "assignment questions on on-device inference edge cases",
+      "type": "lookup",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 49.1
+    },
+    {
+      "query_id": "q43",
+      "query": "detecting NPU driver incompatibility after a firmware update",
+      "type": "procedural",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 34.4
+    },
+    {
+      "query_id": "q44",
+      "query": "running the same model binary on heterogeneous hardware",
+      "type": "definitional",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 30.4
+    },
+    {
+      "query_id": "q45",
+      "query": "machine learning calibration of low-cost air quality sensors",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 25.9
+    },
+    {
+      "query_id": "q46",
+      "query": "IoT system for monitoring PM2.5 and CO2 levels",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 27.9
+    },
+    {
+      "query_id": "q47",
+      "query": "comparing regression algorithms to improve sensor accuracy",
+      "type": "comparative",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 44.6
+    },
+    {
+      "query_id": "q48",
+      "query": "transformer papers before 2020",
+      "type": "temporal",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 28.5
+    },
+    {
+      "query_id": "q49",
+      "query": "attention mechanism paper in 2017",
+      "type": "temporal",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 47.0
+    },
+    {
+      "query_id": "q50",
+      "query": "machine learning research from 2020 to 2023",
+      "type": "temporal",
+      "precision_at_5": 0.8,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 29.9
+    },
+    {
+      "query_id": "q51",
+      "query": "Berkshire Hathaway shareholder letter in 2022",
+      "type": "temporal",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 33.9
+    },
+    {
+      "query_id": "q52",
+      "query": "annual report in 2023",
+      "type": "temporal",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 31.4
+    },
+    {
+      "query_id": "q53",
+      "query": "research published after 2023",
+      "type": "temporal",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 46.4
+    },
+    {
+      "query_id": "q54",
+      "query": "air quality study in 2025",
+      "type": "temporal",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 22.8
+    },
+    {
+      "query_id": "q55",
+      "query": "What is a grid-of-beam optical wireless access network?",
+      "type": "definitional",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 28.3
+    },
+    {
+      "query_id": "q56",
+      "query": "How does beam clustering manage inter-beam interference in a VCSEL array access point?",
+      "type": "procedural",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 28.9
+    },
+    {
+      "query_id": "q57",
+      "query": "What data rates does the double-tier VCSEL array access point achieve?",
+      "type": "factual",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 24.8
+    },
+    {
+      "query_id": "q58",
+      "query": "Compare NOMA and OFDMA sum rate performance in the grid-of-beam network",
+      "type": "comparative",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 29.2
+    }
+  ],
+  "baselines": {
+    "bm25": {
+      "total_queries": 49,
+      "metrics": {
+        "precision_at_5": 0.2449,
+        "precision_at_10": 0.1327,
+        "recall_at_5": 0.9286,
+        "recall_at_10": 0.9796,
+        "ndcg_at_10": 0.9108,
+        "mrr": 0.9118
+      },
+      "latency_ms_avg": 120.4
+    }
+  },
+  "comparison": {
+    "semantic_wins": 7,
+    "bm25_wins": 3,
+    "ties": 39,
+    "per_query": [
+      {
+        "query_id": "q1",
+        "query": "What is the attention mechanism in transformers?",
+        "type": "factual",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q2",
+        "query": "How does BERT pre-training work?",
+        "type": "definitional",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q4",
+        "query": "How does the Vision Transformer process images?",
+        "type": "definitional",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q5",
+        "query": "What is Retrieval-Augmented Generation?",
+        "type": "definitional",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q6",
+        "query": "What is chain of thought prompting?",
+        "type": "definitional",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q7",
+        "query": "What is LLaMA and what datasets was it trained on?",
+        "type": "factual",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q8",
+        "query": "How does the mixture of experts architecture work?",
+        "type": "definitional",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q9",
+        "query": "Compare attention mechanisms in transformers vs RNNs",
+        "type": "comparative",
+        "semantic_mrr": 0.5,
+        "bm25_mrr": 1.0,
+        "winner": "bm25"
+      },
+      {
+        "query_id": "q10",
+        "query": "What is the difference between BERT and GPT?",
+        "type": "comparative",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q11",
+        "query": "What were Berkshire Hathaway's operating earnings for 2023?",
+        "type": "factual",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q15",
+        "query": "Compare Berkshire Hathaway's performance across 2022 and 2023",
+        "type": "comparative",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q16",
+        "query": "What scaling laws apply to large language models?",
+        "type": "definitional",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q17",
+        "query": "How do transformers handle long sequences?",
+        "type": "procedural",
+        "semantic_mrr": 0.5,
+        "bm25_mrr": 1.0,
+        "winner": "bm25"
+      },
+      {
+        "query_id": "q18",
+        "query": "What is the role of pre-training in NLP models?",
+        "type": "definitional",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.5,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "q19",
+        "query": "How does Retrieval-Augmented Generation improve factual accuracy?",
+        "type": "procedural",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q20",
+        "query": "What are the advantages of Vision Transformers over CNNs?",
+        "type": "comparative",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q21",
+        "query": "What is Berkshire Hathaway's investment philosophy according to Warren Buffett?",
+        "type": "lookup",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q22",
+        "query": "How does chain of thought prompting improve mathematical reasoning?",
+        "type": "factual",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q23",
+        "query": "What is the Mixture of Experts routing mechanism?",
+        "type": "factual",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q27",
+        "query": "How does positional encoding work in transformers?",
+        "type": "factual",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q29",
+        "query": "Compare the training approaches of BERT and GPT",
+        "type": "comparative",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q31",
+        "query": "internship that needs Docker and Kubernetes experience",
+        "type": "lookup",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q32",
+        "query": "which role asks for AWS and Jenkins CI/CD skills",
+        "type": "lookup",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q33",
+        "query": "cloud engineering job working across multiple cloud providers",
+        "type": "lookup",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q34",
+        "query": "company building a unified customer experience management platform",
+        "type": "factual",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q35",
+        "query": "company working on identity verification and fraud prevention",
+        "type": "factual",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q36",
+        "query": "internship at an AI company doing automated ID checks",
+        "type": "lookup",
+        "semantic_mrr": 0.25,
+        "bm25_mrr": 1.0,
+        "winner": "bm25"
+      },
+      {
+        "query_id": "q37",
+        "query": "payments company that helped build UPI infrastructure",
+        "type": "factual",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q38",
+        "query": "job at a fintech processing digital transactions in India",
+        "type": "lookup",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q39",
+        "query": "campus placement process with aptitude and technical interview rounds",
+        "type": "procedural",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q40",
+        "query": "graduate trainee program with no service bond",
+        "type": "factual",
+        "semantic_mrr": 0.5,
+        "bm25_mrr": 0.1429,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "q41",
+        "query": "KV cache checkpointing to recover from an Android process kill",
+        "type": "definitional",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q42",
+        "query": "assignment questions on on-device inference edge cases",
+        "type": "lookup",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q43",
+        "query": "detecting NPU driver incompatibility after a firmware update",
+        "type": "procedural",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q44",
+        "query": "running the same model binary on heterogeneous hardware",
+        "type": "definitional",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q45",
+        "query": "machine learning calibration of low-cost air quality sensors",
+        "type": "definitional",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q46",
+        "query": "IoT system for monitoring PM2.5 and CO2 levels",
+        "type": "factual",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q47",
+        "query": "comparing regression algorithms to improve sensor accuracy",
+        "type": "comparative",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q48",
+        "query": "transformer papers before 2020",
+        "type": "temporal",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.5,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "q49",
+        "query": "attention mechanism paper in 2017",
+        "type": "temporal",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.5,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "q50",
+        "query": "machine learning research from 2020 to 2023",
+        "type": "temporal",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.3333,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "q51",
+        "query": "Berkshire Hathaway shareholder letter in 2022",
+        "type": "temporal",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.5,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "q52",
+        "query": "annual report in 2023",
+        "type": "temporal",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q53",
+        "query": "research published after 2023",
+        "type": "temporal",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.2,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "q54",
+        "query": "air quality study in 2025",
+        "type": "temporal",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q55",
+        "query": "What is a grid-of-beam optical wireless access network?",
+        "type": "definitional",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q56",
+        "query": "How does beam clustering manage inter-beam interference in a VCSEL array access point?",
+        "type": "procedural",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q57",
+        "query": "What data rates does the double-tier VCSEL array access point achieve?",
+        "type": "factual",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "q58",
+        "query": "Compare NOMA and OFDMA sum rate performance in the grid-of-beam network",
+        "type": "comparative",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      }
+    ]
+  }
+}

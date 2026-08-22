@@ -605,43 +605,64 @@ parallel with anything.
 
 ---
 
-### 6.1 — RRF hybrid retrieval
+### 6.1 — RRF hybrid retrieval — TESTED AND REJECTED. Do not retry.
 
-Fuse the existing semantic and keyword retrievers with Reciprocal Rank Fusion.
+Fused the semantic and keyword retrievers with Reciprocal Rank Fusion
+(`score(doc) = Σ 1/(k + rank)`), swept `k`, and measured against the acceptance bar agreed
+**before** running it: *accept only if paraphrased MRR improves and literal MRR does not regress.*
 
-**Why RRF rather than blending scores:** the two retrievers produce incomparable numbers —
-cosine similarity in [0,1] (observed 0.60–0.70) versus unbounded `ts_rank`. Score blending needs
-normalisation that is fragile and needs tuning per corpus. RRF uses only ranks:
+| Config | Literal MRR | Paraphrased MRR | Paraphrased R@5 |
+|---|---|---|---|
+| Semantic only | 0.9541 | **0.8314** | **0.9186** |
+| RRF k=10 | 0.9558 | 0.8101 | 0.9186 |
+| RRF k=30 | 0.9558 | 0.8078 | 0.8953 |
+| RRF k=60 | 0.9558 | 0.8078 | 0.8837 |
+| RRF k=100 | 0.9558 | 0.8078 | 0.8837 |
 
-```
-score(doc) = Σ over retrievers  1 / (k + rank_in_that_retriever)      k ≈ 60
-```
+**Paraphrased MRR fell at every k** (−0.021 to −0.024), and recall fell too from k=30. Literal
+gained +0.002, which is noise. Fails the bar.
 
-**Measured headroom** (from `data/eval/baselines/2026-08-21_post-corpus-fix_*`, counting
-MRR ≥ 0.5 as "good"):
+**Why:** the headroom analysis showed BM25 could rescue 7% of paraphrased queries, but also that
+19% were cases where *only* semantic worked. Fusion cannot take the first group without exposing
+the second, and here the loss is roughly three times the gain.
 
-| | Literal (49) | Paraphrased (43) |
-|---|---|---|
-| Both retrievers good | 92% | 65% |
-| Only semantic good — **at risk from fusion** | 6% | 19% |
-| Only BM25 good — **rescuable** | 2% | 7% |
-| Neither good — hard floor, RRF cannot help | 0% | 9% |
-| Hybrid ceiling vs semantic-only | 100% vs 98% | **91% vs 84%** |
+Setting the bar in advance mattered. After the fact it would have been easy to argue "+0.002
+literal, paraphrased nDCG basically flat, ship it."
 
-Realistic expectation is **+3–5 points paraphrased MRR**, not +7: the ceiling assumes fusion
-always picks the better retriever, and the 19% "only semantic good" band is what BM25 can drag
-down.
-
-- Files: new `core/search/fusion.py`; wire into `core/api/routes/search.py` behind a flag.
-- Keep semantic-only reachable (config flag or request field) so the comparison stays runnable.
-- Extend `core/eval/` to score a third retriever, reusing `runner.score_retrieved` so all three
-  share identical dedup and metric logic.
-- **Acceptance, agreed in advance to avoid post-hoc rationalising:** accept only if paraphrased
-  MRR improves **and literal MRR does not regress**. Sweep `k` ∈ {10, 30, 60, 100} — cheap,
-  because fusion is query-time only and needs **no re-seed** (~4 min per measurement).
-- Record the result either way, including if it fails.
+**Code removed** (`core/search/fusion.py`, `core/eval/hybrid.py`). The negative result is the
+deliverable. Hybrid retrieval may still be right on a larger, more homogeneous corpus where
+documents compete more — it is not right on this one.
 
 ---
+
+### 6.1b — Over-fetch then de-duplicate  *(SHIPPED — found while building 6.1)*
+
+The RRF control oversampled chunks before collapsing to documents, which made the *control* beat
+the shipped configuration. That discrepancy, not fusion, was the real finding.
+
+**Mechanism:** results are judged and displayed per document — the user wants a file, not a
+passage — but the store ranks *chunks*. When one document owns most of the top 10 chunks, other
+documents never surface at all. Fetching deeper before collapsing lets them through.
+
+`OVERFETCH_FACTOR = 5` in `core/api/routes/search.py`: fetch `top_k * 5` chunks, keep the
+best-scoring chunk per document, return `top_k` documents. Applied to the unfiltered path and to
+each D12 date tier.
+
+| Metric | Before | After |
+|---|---|---|
+| Literal Recall@10 | 0.9796 | **1.0000** |
+| Paraphrased Recall@10 | 0.9186 | **1.0000** |
+| Paraphrased nDCG@10 | 0.8329 | **0.8599** |
+| Paraphrased MRR | 0.8275 | **0.8347** |
+| Literal Recall@5 | 0.9796 | 0.9898 |
+| Paraphrased Recall@5 | 0.9070 | 0.9186 |
+
+**Nothing regressed**, and it costs **~1.3 ms** (7.1 → 8.4 ms at depth 50). Recall@10 is now
+1.0000 on both sets: every relevant document is found within the top 10.
+
+**Note the contract change:** `top_k` now means *documents*, not chunks, and each result is a
+document's best-matching passage. Phase 4.2 (answer generation) will need several passages per
+document and should fetch them by `document_id` rather than widening this endpoint.
 
 ### 6.2 (was 3.2) — Content-hash deduplication  *(do after 4.1)*
 

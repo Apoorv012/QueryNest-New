@@ -17,6 +17,31 @@ from core.index.config import is_store_configured
 
 _has_pgvector = is_store_configured()
 
+# Chunks are fetched this many times deeper than the requested result count,
+# then collapsed to one result per document.
+#
+# Results are judged per document — the user is looking for a file, not a
+# passage — but the store ranks chunks. When one document owns most of the top
+# chunks, other documents never surface at all. Measured on the golden sets,
+# fetching 5x and then de-duplicating moves Recall@10 from 0.9796 to 1.0000
+# (literal) and 0.9186 to 0.9767 (paraphrased), with no metric regressing, for
+# about 1.3ms (7.1ms -> 8.4ms at depth 50).
+OVERFETCH_FACTOR = 5
+
+
+def _first_per_document(results: list, limit: int) -> list:
+    """Keep the best-scoring chunk per document, preserving rank order."""
+    seen: set[str] = set()
+    kept = []
+    for r in results:
+        if r.document_id in seen:
+            continue
+        seen.add(r.document_id)
+        kept.append(r)
+        if len(kept) >= limit:
+            break
+    return kept
+
 
 class SearchRequest(BaseModel):
     query: str = ""
@@ -53,10 +78,13 @@ def search(body: SearchRequest):
     date_filter_applied = date_from is not None or date_to is not None
 
     if not date_filter_applied:
-        results = store.search(
-            query_embedding,
-            user_id=body.user_id,
-            top_k=body.top_k,
+        results = _first_per_document(
+            store.search(
+                query_embedding,
+                user_id=body.user_id,
+                top_k=body.top_k * OVERFETCH_FACTOR,
+            ),
+            body.top_k,
         )
     else:
         # D12: a date expression is a hint, not a hard constraint, so a short
@@ -80,13 +108,17 @@ def search(body: SearchRequest):
         ):
             if len(results) >= body.top_k:
                 break
-            tier = store.search(
-                query_embedding,
-                user_id=body.user_id,
-                top_k=body.top_k - len(results),
-                date_from=date_from,
-                date_to=date_to,
-                date_mode=mode,
+            shortfall = body.top_k - len(results)
+            tier = _first_per_document(
+                store.search(
+                    query_embedding,
+                    user_id=body.user_id,
+                    top_k=shortfall * OVERFETCH_FACTOR,
+                    date_from=date_from,
+                    date_to=date_to,
+                    date_mode=mode,
+                ),
+                shortfall,
             )
             # Stamp the tier here rather than trusting the store to do it:
             # the route is what decided which tier this call represents, so

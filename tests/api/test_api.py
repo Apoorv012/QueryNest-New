@@ -437,8 +437,42 @@ class TestSearchTieredDates:
 
         assert resp.status_code == 200
         assert len(resp.json()["results"]) == 5
+        # Each tier asks only for the shortfall, over-fetched: chunks are
+        # collapsed to one per document afterwards, so the store must be asked
+        # for more chunks than the number of documents wanted.
+        from core.api.routes.search import OVERFETCH_FACTOR
+
         top_ks = [c.kwargs["top_k"] for c in fake_store.search.call_args_list]
-        assert top_ks == [5, 3, 2]
+        assert top_ks == [5 * OVERFETCH_FACTOR, 3 * OVERFETCH_FACTOR, 2 * OVERFETCH_FACTOR]
+
+    def test_only_the_best_chunk_per_document_is_returned(self, client):
+        # The store ranks chunks; the user is looking for documents. Without
+        # collapsing, one document owning the top chunks crowds every other
+        # document out of the results entirely.
+        from core.index.base import SearchResult
+
+        def _chunk(chunk_id, doc_id, score):
+            return SearchResult(
+                chunk_id=chunk_id, document_id=doc_id, text=f"t{chunk_id}",
+                heading="h", score=score, page=0,
+            )
+
+        fake_store = MagicMock()
+        fake_store.search.return_value = [
+            _chunk(1, "docA", 0.99), _chunk(2, "docA", 0.98),
+            _chunk(3, "docA", 0.97), _chunk(4, "docB", 0.60),
+            _chunk(5, "docC", 0.50),
+        ]
+
+        resp = self._search(
+            client, fake_store,
+            {"query": "insurance policy", "top_k": 3, "user_id": "u1"},
+        )
+
+        results = resp.json()["results"]
+        assert [r["document_id"] for r in results] == ["docA", "docB", "docC"]
+        # docA's best chunk survives; its weaker duplicates are dropped.
+        assert results[0]["chunk_id"] == 1
 
     def test_no_tiering_without_a_date_filter(self, client):
         from core.index.base import DATE_MATCH_UNFILTERED

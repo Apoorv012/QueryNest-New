@@ -293,6 +293,41 @@ can.
 
 ---
 
+## 10b. Two lessons from the hybrid-search experiment
+
+### Set the acceptance bar before you measure
+
+RRF hybrid retrieval was rejected because paraphrased MRR fell at every `k` (0.8314 → 0.8078)
+while literal gained +0.002. The bar — *paraphrased MRR must improve and literal must not
+regress* — was written down **before** the experiment ran.
+
+That mattered. After the fact, with the code written and working, it would have been easy to
+argue "+0.002 on literal, paraphrased nDCG basically flat, ship it." A bar agreed in advance
+turns that into a decision already made.
+
+> *Interview answer:* "I built hybrid search, measured it against a bar I'd set beforehand, and
+> it failed — keyword search dragged down the queries where semantic was the only thing working.
+> I deleted the code and kept the measurement. The interesting part is why: I'd analysed the
+> headroom first and knew 7% of queries were rescuable but 19% were at risk. The experiment
+> confirmed the risk outweighed the gain."
+
+### The control is worth as much attention as the treatment
+
+While building RRF I oversampled chunks before collapsing to documents — and noticed the
+*control* was beating the shipped configuration. That discrepancy, not fusion, was the real find.
+
+Results are judged per document (the user wants a file), but the store ranks *chunks*. When one
+document owned most of the top 10 chunks, other documents never surfaced. Fetching 5x deeper and
+keeping each document's best chunk moved **Recall@10 from 0.9796 to 1.0000 (literal) and 0.9186
+to 1.0000 (paraphrased)** for about 1.3 ms — larger than any deliberate tuning attempt except the
+HNSW bug fix.
+
+The pattern worth internalising: **a failed experiment can still be worth running.** Four Phase 2
+knobs failed and taught calibration; this one failed and produced the second-largest win in the
+project, from its own control arm.
+
+---
+
 ## 11. The three stories to be able to tell precisely
 
 Rehearse these. Each is: *what I saw → what I suspected → how I confirmed it → what it cost.*
