@@ -159,20 +159,20 @@
         },
         {
             "id": "q11",
-            "query": "What is Berkshire Hathaway's operating revenue for 2023?",
+            "query": "What were Berkshire Hathaway's operating earnings for 2023?",
             "type": "factual",
             "expected_docs": [
                 {
                     "document_filename": "berkshire_2023",
                     "relevance": 2,
-                    "text_contains": "revenue"
+                    "text_contains": "operating earnings"
                 }
             ],
             "min_relevant": 1
         },
         {
             "id": "q15",
-            "query": "Compare Berkshire Hathaway's performance across 2022, 2023, and 2024",
+            "query": "Compare Berkshire Hathaway's performance across 2022 and 2023",
             "type": "comparative",
             "expected_docs": [
                 {
@@ -342,7 +342,7 @@
         },
         {
             "id": "q29",
-            "query": "Compare the training approaches of BERT and GPT-3",
+            "query": "Compare the training approaches of BERT and GPT",
             "type": "comparative",
             "expected_docs": [
                 {
@@ -619,7 +619,7 @@
         },
         {
             "id": "q50",
-            "query": "language model research from 2020 to 2023",
+            "query": "machine learning research from 2020 to 2023",
             "type": "temporal",
             "expected_docs": [
                 {
@@ -689,6 +689,58 @@
                 {
                     "document_filename": "sensors-25-03183",
                     "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q55",
+            "query": "What is a grid-of-beam optical wireless access network?",
+            "type": "definitional",
+            "expected_docs": [
+                {
+                    "document_filename": "optical_wireless_6g_2024",
+                    "relevance": 2,
+                    "text_contains": "grid-of-beam"
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q56",
+            "query": "How does beam clustering manage inter-beam interference in a VCSEL array access point?",
+            "type": "procedural",
+            "expected_docs": [
+                {
+                    "document_filename": "optical_wireless_6g_2024",
+                    "relevance": 2,
+                    "text_contains": "beam clustering"
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q57",
+            "query": "What data rates does the double-tier VCSEL array access point achieve?",
+            "type": "factual",
+            "expected_docs": [
+                {
+                    "document_filename": "optical_wireless_6g_2024",
+                    "relevance": 2,
+                    "text_contains": "Gb/s"
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "q58",
+            "query": "Compare NOMA and OFDMA sum rate performance in the grid-of-beam network",
+            "type": "comparative",
+            "expected_docs": [
+                {
+                    "document_filename": "optical_wireless_6g_2024",
+                    "relevance": 2,
+                    "text_contains": "NOMA"
                 }
             ],
             "min_relevant": 1

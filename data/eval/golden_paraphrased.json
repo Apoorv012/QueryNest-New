@@ -527,6 +527,42 @@
                 }
             ],
             "min_relevant": 1
+        },
+        {
+            "id": "p41",
+            "query": "indoor internet using a wall of tiny lasers instead of wifi",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "optical_wireless_6g_2024",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p42",
+            "query": "splitting a room into zones of light so nearby users don't interfere with each other",
+            "type": "paraphrased",
+            "expected_docs": [
+                {
+                    "document_filename": "optical_wireless_6g_2024",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
+        },
+        {
+            "id": "p43",
+            "query": "next-gen wireless research using light instead of radio for crazy fast indoor speeds",
+            "type": "vague",
+            "expected_docs": [
+                {
+                    "document_filename": "optical_wireless_6g_2024",
+                    "relevance": 2
+                }
+            ],
+            "min_relevant": 1
         }
     ]
 }

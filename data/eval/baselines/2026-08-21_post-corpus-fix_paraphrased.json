@@ -1,0 +1,812 @@
+{
+  "timestamp": "20260821_141527",
+  "git_commit": "d510d5a",
+  "total_queries": 43,
+  "metrics": {
+    "precision_at_5": 0.2233,
+    "precision_at_10": 0.114,
+    "recall_at_5": 0.907,
+    "recall_at_10": 0.9186,
+    "ndcg_at_10": 0.8329,
+    "mrr": 0.8275
+  },
+  "latency_ms_avg": 20.3,
+  "by_type": {
+    "paraphrased": {
+      "count": 33,
+      "precision_at_5": 0.2242,
+      "recall_at_10": 0.9697
+    },
+    "vague": {
+      "count": 10,
+      "precision_at_5": 0.22,
+      "recall_at_10": 0.75
+    }
+  },
+  "worst_queries": [
+    {
+      "query_id": "p1",
+      "query": "the paper that let every word look at every other word instead of reading in order",
+      "mrr": 0.0,
+      "precision_at_5": 0.0
+    },
+    {
+      "query_id": "p39",
+      "query": "the document about how a business made money last year",
+      "mrr": 0.0,
+      "precision_at_5": 0.0
+    },
+    {
+      "query_id": "p3",
+      "query": "that famous google paper that changed how language models are built",
+      "mrr": 0.25,
+      "precision_at_5": 0.2
+    },
+    {
+      "query_id": "p25",
+      "query": "startup stopping fake account signups for banks",
+      "mrr": 0.3333,
+      "precision_at_5": 0.2
+    },
+    {
+      "query_id": "p29",
+      "query": "that role about running systems across several hosting providers",
+      "mrr": 0.3333,
+      "precision_at_5": 0.2
+    }
+  ],
+  "query_results": [
+    {
+      "query_id": "p1",
+      "query": "the paper that let every word look at every other word instead of reading in order",
+      "type": "paraphrased",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 44.7
+    },
+    {
+      "query_id": "p2",
+      "query": "which architecture threw out recurrence and convolutions completely",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 17.9
+    },
+    {
+      "query_id": "p3",
+      "query": "that famous google paper that changed how language models are built",
+      "type": "vague",
+      "precision_at_5": 0.2,
+      "recall_at_10": 0.5,
+      "mrr": 0.25,
+      "latency_ms": 21.6
+    },
+    {
+      "query_id": "p4",
+      "query": "the model trained by hiding random words and making it guess them",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 21.1
+    },
+    {
+      "query_id": "p5",
+      "query": "understanding a sentence by reading it forwards and backwards at once",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 18.6
+    },
+    {
+      "query_id": "p6",
+      "query": "making the model show its working before giving an answer",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 17.8
+    },
+    {
+      "query_id": "p7",
+      "query": "why writing out intermediate steps helps with maths word problems",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 20.1
+    },
+    {
+      "query_id": "p8",
+      "query": "open weight models trained only on data anyone can download",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 0.5,
+      "latency_ms": 20.2
+    },
+    {
+      "query_id": "p9",
+      "query": "meta's family of freely released foundation models",
+      "type": "vague",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 0.5,
+      "latency_ms": 17.6
+    },
+    {
+      "query_id": "p10",
+      "query": "only switching on part of the network for each input to save compute",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 0.5,
+      "latency_ms": 19.8
+    },
+    {
+      "query_id": "p11",
+      "query": "splitting a model into specialists and picking a few per token",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 17.4
+    },
+    {
+      "query_id": "p12",
+      "query": "looking things up in documents first so the model makes fewer things up",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 18.6
+    },
+    {
+      "query_id": "p13",
+      "query": "letting a model consult an outside knowledge source before answering",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 16.4
+    },
+    {
+      "query_id": "p14",
+      "query": "treating pictures as sequences of little squares instead of using filters",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 18.1
+    },
+    {
+      "query_id": "p15",
+      "query": "applying a text model architecture to recognising images",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 20.4
+    },
+    {
+      "query_id": "p16",
+      "query": "correcting cheap environmental monitoring hardware with regression models",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 20.2
+    },
+    {
+      "query_id": "p17",
+      "query": "making inexpensive pollution measuring devices more accurate",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 31.3
+    },
+    {
+      "query_id": "p18",
+      "query": "that study about dust and gas readings from hobby grade equipment",
+      "type": "vague",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 18.4
+    },
+    {
+      "query_id": "p19",
+      "query": "warren buffett's yearly note to the people who own the company",
+      "type": "paraphrased",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 17.4
+    },
+    {
+      "query_id": "p20",
+      "query": "the conglomerate's write up on its insurance and railway businesses",
+      "type": "paraphrased",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 19.4
+    },
+    {
+      "query_id": "p21",
+      "query": "that investor letter about buying good businesses and holding them",
+      "type": "vague",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 18.5
+    },
+    {
+      "query_id": "p22",
+      "query": "the internship about keeping servers running and automating releases",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 18.6
+    },
+    {
+      "query_id": "p23",
+      "query": "trainee role for someone who likes shell scripting and deployment pipelines",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 20.1
+    },
+    {
+      "query_id": "p24",
+      "query": "the company that checks whether someone's ID document is genuine",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 19.1
+    },
+    {
+      "query_id": "p25",
+      "query": "startup stopping fake account signups for banks",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 0.3333,
+      "latency_ms": 19.6
+    },
+    {
+      "query_id": "p26",
+      "query": "company that moves money between banks and online shops",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 28.7
+    },
+    {
+      "query_id": "p27",
+      "query": "the place that helped build india's phone based money transfer system",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 19.1
+    },
+    {
+      "query_id": "p28",
+      "query": "software big brands use to handle all their social media and support channels",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 18.4
+    },
+    {
+      "query_id": "p29",
+      "query": "that role about running systems across several hosting providers",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 0.3333,
+      "latency_ms": 18.2
+    },
+    {
+      "query_id": "p30",
+      "query": "the booklet explaining how they pick students from colleges",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 19.7
+    },
+    {
+      "query_id": "p31",
+      "query": "what the stages are before you get an offer letter as a fresher",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 21.7
+    },
+    {
+      "query_id": "p32",
+      "query": "the take home task about running AI models on phones and laptops",
+      "type": "paraphrased",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 18.8
+    },
+    {
+      "query_id": "p33",
+      "query": "questions they asked me about handling flaky on device hardware",
+      "type": "paraphrased",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 19.2
+    },
+    {
+      "query_id": "p34",
+      "query": "my write up on recovering when the phone shuts down the model",
+      "type": "paraphrased",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 21.6
+    },
+    {
+      "query_id": "p35",
+      "query": "what i submitted about saving progress so work isn't lost on a crash",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 18.3
+    },
+    {
+      "query_id": "p36",
+      "query": "something explaining how machines learn to understand written language",
+      "type": "vague",
+      "precision_at_5": 0.2,
+      "recall_at_10": 0.5,
+      "mrr": 0.3333,
+      "latency_ms": 19.9
+    },
+    {
+      "query_id": "p37",
+      "query": "a job description involving containers and automated testing",
+      "type": "vague",
+      "precision_at_5": 0.4,
+      "recall_at_10": 1.0,
+      "mrr": 0.3333,
+      "latency_ms": 18.5
+    },
+    {
+      "query_id": "p38",
+      "query": "research about spotting patterns in readings from physical devices",
+      "type": "vague",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 18.5
+    },
+    {
+      "query_id": "p39",
+      "query": "the document about how a business made money last year",
+      "type": "vague",
+      "precision_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "mrr": 0.0,
+      "latency_ms": 17.4
+    },
+    {
+      "query_id": "p40",
+      "query": "papers about making big models cheaper to run",
+      "type": "vague",
+      "precision_at_5": 0.2,
+      "recall_at_10": 0.5,
+      "mrr": 0.5,
+      "latency_ms": 19.0
+    },
+    {
+      "query_id": "p41",
+      "query": "indoor internet using a wall of tiny lasers instead of wifi",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 22.7
+    },
+    {
+      "query_id": "p42",
+      "query": "splitting a room into zones of light so nearby users don't interfere with each other",
+      "type": "paraphrased",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 20.6
+    },
+    {
+      "query_id": "p43",
+      "query": "next-gen wireless research using light instead of radio for crazy fast indoor speeds",
+      "type": "vague",
+      "precision_at_5": 0.2,
+      "recall_at_10": 1.0,
+      "mrr": 1.0,
+      "latency_ms": 20.6
+    }
+  ],
+  "baselines": {
+    "bm25": {
+      "total_queries": 43,
+      "metrics": {
+        "precision_at_5": 0.2047,
+        "precision_at_10": 0.114,
+        "recall_at_5": 0.8256,
+        "recall_at_10": 0.8953,
+        "ndcg_at_10": 0.7411,
+        "mrr": 0.7158
+      },
+      "latency_ms_avg": 158.3
+    }
+  },
+  "comparison": {
+    "semantic_wins": 13,
+    "bm25_wins": 7,
+    "ties": 23,
+    "per_query": [
+      {
+        "query_id": "p1",
+        "query": "the paper that let every word look at every other word instead of reading in order",
+        "type": "paraphrased",
+        "semantic_mrr": 0.0,
+        "bm25_mrr": 0.1111,
+        "winner": "bm25"
+      },
+      {
+        "query_id": "p2",
+        "query": "which architecture threw out recurrence and convolutions completely",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p3",
+        "query": "that famous google paper that changed how language models are built",
+        "type": "vague",
+        "semantic_mrr": 0.25,
+        "bm25_mrr": 0.5,
+        "winner": "bm25"
+      },
+      {
+        "query_id": "p4",
+        "query": "the model trained by hiding random words and making it guess them",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p5",
+        "query": "understanding a sentence by reading it forwards and backwards at once",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p6",
+        "query": "making the model show its working before giving an answer",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.5,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p7",
+        "query": "why writing out intermediate steps helps with maths word problems",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p8",
+        "query": "open weight models trained only on data anyone can download",
+        "type": "paraphrased",
+        "semantic_mrr": 0.5,
+        "bm25_mrr": 1.0,
+        "winner": "bm25"
+      },
+      {
+        "query_id": "p9",
+        "query": "meta's family of freely released foundation models",
+        "type": "vague",
+        "semantic_mrr": 0.5,
+        "bm25_mrr": 1.0,
+        "winner": "bm25"
+      },
+      {
+        "query_id": "p10",
+        "query": "only switching on part of the network for each input to save compute",
+        "type": "paraphrased",
+        "semantic_mrr": 0.5,
+        "bm25_mrr": 0.5,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p11",
+        "query": "splitting a model into specialists and picking a few per token",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p12",
+        "query": "looking things up in documents first so the model makes fewer things up",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p13",
+        "query": "letting a model consult an outside knowledge source before answering",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p14",
+        "query": "treating pictures as sequences of little squares instead of using filters",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.3333,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p15",
+        "query": "applying a text model architecture to recognising images",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p16",
+        "query": "correcting cheap environmental monitoring hardware with regression models",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p17",
+        "query": "making inexpensive pollution measuring devices more accurate",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p18",
+        "query": "that study about dust and gas readings from hobby grade equipment",
+        "type": "vague",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p19",
+        "query": "warren buffett's yearly note to the people who own the company",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p20",
+        "query": "the conglomerate's write up on its insurance and railway businesses",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p21",
+        "query": "that investor letter about buying good businesses and holding them",
+        "type": "vague",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p22",
+        "query": "the internship about keeping servers running and automating releases",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.0,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p23",
+        "query": "trainee role for someone who likes shell scripting and deployment pipelines",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.5,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p24",
+        "query": "the company that checks whether someone's ID document is genuine",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.25,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p25",
+        "query": "startup stopping fake account signups for banks",
+        "type": "paraphrased",
+        "semantic_mrr": 0.3333,
+        "bm25_mrr": 0.0,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p26",
+        "query": "company that moves money between banks and online shops",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.3333,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p27",
+        "query": "the place that helped build india's phone based money transfer system",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.5,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p28",
+        "query": "software big brands use to handle all their social media and support channels",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.25,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p29",
+        "query": "that role about running systems across several hosting providers",
+        "type": "paraphrased",
+        "semantic_mrr": 0.3333,
+        "bm25_mrr": 1.0,
+        "winner": "bm25"
+      },
+      {
+        "query_id": "p30",
+        "query": "the booklet explaining how they pick students from colleges",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p31",
+        "query": "what the stages are before you get an offer letter as a fresher",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.25,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p32",
+        "query": "the take home task about running AI models on phones and laptops",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.1667,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p33",
+        "query": "questions they asked me about handling flaky on device hardware",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p34",
+        "query": "my write up on recovering when the phone shuts down the model",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p35",
+        "query": "what i submitted about saving progress so work isn't lost on a crash",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p36",
+        "query": "something explaining how machines learn to understand written language",
+        "type": "vague",
+        "semantic_mrr": 0.3333,
+        "bm25_mrr": 0.3333,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p37",
+        "query": "a job description involving containers and automated testing",
+        "type": "vague",
+        "semantic_mrr": 0.3333,
+        "bm25_mrr": 0.25,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p38",
+        "query": "research about spotting patterns in readings from physical devices",
+        "type": "vague",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 0.0,
+        "winner": "semantic"
+      },
+      {
+        "query_id": "p39",
+        "query": "the document about how a business made money last year",
+        "type": "vague",
+        "semantic_mrr": 0.0,
+        "bm25_mrr": 1.0,
+        "winner": "bm25"
+      },
+      {
+        "query_id": "p40",
+        "query": "papers about making big models cheaper to run",
+        "type": "vague",
+        "semantic_mrr": 0.5,
+        "bm25_mrr": 1.0,
+        "winner": "bm25"
+      },
+      {
+        "query_id": "p41",
+        "query": "indoor internet using a wall of tiny lasers instead of wifi",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p42",
+        "query": "splitting a room into zones of light so nearby users don't interfere with each other",
+        "type": "paraphrased",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      },
+      {
+        "query_id": "p43",
+        "query": "next-gen wireless research using light instead of radio for crazy fast indoor speeds",
+        "type": "vague",
+        "semantic_mrr": 1.0,
+        "bm25_mrr": 1.0,
+        "winner": "tie"
+      }
+    ]
+  }
+}
