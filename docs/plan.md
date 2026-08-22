@@ -315,14 +315,53 @@ server on Windows/Git Bash. The replacement process fails to bind port 8000 (exi
 the eval silently runs against the *old* code. Always free the port explicitly
 (`Get-NetTCPConnection -LocalPort 8000 | Stop-Process`) and confirm before measuring.
 
-**2.2 — Embed the heading along with the chunk**
-- File: `core/chunking/chunker.py:53`
-- You extract the section heading, store it, display it — and then throw it away at embedding
-  time. A chunk under "3.2 Scaled Dot-Product Attention" loses that context entirely.
-- Change: embed `f"{heading}\n\n{text}"` while keeping `Chunk.text` clean for display.
-  For personal admin documents, also prepend the filename stem — an invoice's only "heading"
-  is often its name.
-- Acceptance: eval re-run; delta recorded.
+**2.2 — Embed the heading with the chunk — TESTED AND REJECTED. Do not retry.**
+- File: `core/models/chunk.py`, `core/api/routes/{eval,upload}.py`
+- Hypothesis: the section heading is extracted, stored and displayed, then discarded before
+  embedding, so a chunk under "3.2 Scaled Dot-Product Attention" carries none of that context
+  into its vector. Prepending it should be close to free.
+- Implemented as a `Chunk.embed_text` property (`heading
+
+text`), keeping `Chunk.text` clean
+  for display and citations, applied to both the seed and upload paths. **Measured worse on
+  every metric that moved, on both query sets:**
+
+| | Control | With heading | Delta |
+|---|---|---|---|
+| Literal Recall@5 | **0.9444** | 0.9278 | −0.017 |
+| Literal nDCG@10 | **0.9088** | 0.9075 | −0.001 |
+| Literal MRR | 0.9111 | 0.9111 | 0 |
+| Paraphrased Recall@5 | **0.8750** | 0.8500 | −0.025 |
+| Paraphrased Recall@10 | **0.8875** | 0.8625 | −0.025 |
+| Paraphrased nDCG@10 | **0.7953** | 0.7851 | −0.010 |
+| Paraphrased MRR | **0.7896** | 0.7737 | −0.016 |
+
+- Likely cause: headings in this corpus are short and generic ("3.2", "Introduction",
+  "What you'll do"). Prepending one to every chunk in a section adds a constant, low-information
+  prefix that dilutes the body signal. The idea would plausibly work with descriptive headings
+  and longer chunks — the opposite of this corpus.
+- **Reverted**, including the now-dead `embed_text` property. The negative result is the
+  deliverable.
+
+---
+
+### Measurement precision (established 2026-08-21 — read before judging any Phase 2 result)
+
+A full re-seed was run twice with identical code to separate treatment effects from noise:
+
+| Retriever | Seed-to-seed variance |
+|---|---|
+| **Semantic** | **Zero.** A fresh seed reproduces every metric to 4 decimal places |
+| **BM25** | **~±0.02.** MRR drifted 0.6656 → 0.6643 → 0.6638 across three seeds |
+
+BM25 drifts because `MAX(ts_rank) ... ORDER BY score DESC` breaks ties by physical row order, and
+re-seeding assigns new `document_id`s. Semantic scores are continuous floats, so ties effectively
+never occur.
+
+**Consequences:** semantic deltas are trustworthy at full precision — a 0.017 change is real.
+BM25 deltas below ~0.02 are meaningless and must not be reported as findings. Query time is also
+deterministic: three eval runs against one index returned byte-identical numbers, so all
+variance lives in seeding, not retrieval.
 
 **2.3 — Switch the vector index from IVFFlat to HNSW**
 - File: `core/index/pgvector.py:63`
@@ -343,16 +382,65 @@ the eval silently runs against the *old* code. Always free the port explicitly
   add golden queries that target table content ("Berkshire's 2023 operating earnings").
 - Acceptance: table blocks present in extraction output; financial-family recall improves.
 
-**2.5 — Chunk-size guards**
-- File: `core/chunking/chunker.py:36`
-- Two unguarded ends. A single oversized block is never split (verified: a 3900-estimated-token
-  block emits as one chunk) and bge-small silently truncates past 512 tokens. At the other end,
-  heading flushes ignore `MIN_TOKENS`, producing chunks as small as **2 tokens** on real corpus
-  documents.
-- Change: hard-split blocks exceeding `MAX_TOKENS` at sentence boundaries; merge sub-`MIN_TOKENS`
-  chunks into their neighbour. Consider ~15% overlap between adjacent chunks — standard practice
-  that helps when an answer straddles a boundary.
-- Acceptance: no chunk outside `[MIN_TOKENS, MAX_TOKENS]` across the whole eval corpus.
+**2.5 — Chunk-size guards — TESTED AND REJECTED (both thresholds). Do not retry.**
+- File: `core/chunking/chunker.py`
+- Motivation was strong and evidence-based, unlike 2.1/2.2: measured on the indexed corpus,
+  **151 of 586 chunks (26%) fell below MIN_TOKENS**, the smallest being single words —
+  `"APPENDIX"`, `"Article"`, `"Question"`, `"4 Results"`. Root cause: a `section-header` flushes
+  the current chunk and then becomes the first block of the next, so two consecutive headers emit
+  a chunk containing nothing but the first header.
+- Two thresholds were implemented and measured (merge a too-small chunk into its neighbour):
+
+| Metric | Control | Merge < 120 | Merge < 20 |
+|---|---|---|---|
+| Chunks indexed | 586 | 466 | 554 |
+| Literal Precision@5 | 0.2578 | 0.2578 | **0.2622** |
+| Literal Recall@5 | 0.9444 | 0.9389 | **0.9500** |
+| Literal nDCG@10 | 0.9088 | **0.9198** | 0.9076 |
+| Literal MRR | 0.9111 | **0.9296** | 0.9056 |
+| Paraphrased Recall@5 | **0.8750** | 0.8500 | **0.8750** |
+| Paraphrased Recall@10 | **0.8875** | 0.8500 | 0.8750 |
+| Paraphrased nDCG@10 | **0.7953** | 0.7805 | 0.7702 |
+| Paraphrased MRR | **0.7896** | **0.7896** | 0.7625 |
+
+- **No configuration dominates.** Each variant trades a literal-set gain for a paraphrased-set
+  loss, and the control wins the paraphrased set outright (best nDCG@10, best Recall@10,
+  tied-best MRR). Since the paraphrased set carries the product thesis, the control is the right
+  configuration.
+- **The finding worth keeping:** those near-empty chunks were *ugly but harmless*. They scored
+  low and never surfaced, so removing them mostly shrank the index rather than improving results.
+  The intuition "noise in the index means noise in the results" was wrong here.
+- **Reverted.** If revisited, note that the defect is real — it is the *fix* that fails to pay.
+
+---
+
+### Phase 2 retrospective — stop turning global knobs
+
+Four global retrieval parameters were tuned and measured against a deterministic baseline:
+
+| Change | Result |
+|---|---|
+| 2.1 BGE query prefix | Regression (−0.05 literal Recall@5) |
+| 2.2 Heading in embedded text | Regression (−0.017 / −0.025 Recall@5) |
+| 2.5 Chunk merging (< 120) | Mixed; loses paraphrased recall |
+| 2.5b Chunk merging (< 20) | Mixed; loses paraphrased ranking |
+| **2.3 HNSW index** | **The one large win — and it was a bug fix, not tuning** |
+
+The pattern is clear: **retrieval quality here is not limited by chunking or embedding
+parameters.** Every remaining global knob is likely to produce ±0.02 noise. Two directions have
+much better expected value:
+
+1. **Diagnose specific failures.** `q8 "How does the mixture of experts architecture work?"` has
+   scored **MRR 0 in every configuration tested** — untrained index, HNSW, heading, both merge
+   thresholds — despite `mixture_of_experts_2024` having 56 chunks indexed. A document that never
+   surfaces for its own topic is a concrete, findable bug.
+2. **Hybrid retrieval.** BM25 and semantic each win queries the other loses (BM25 takes `q17`,
+   `q9`, `q36`; semantic takes the paraphrased set). Both retrievers already exist; fusing their
+   rankings (e.g. reciprocal rank fusion) is the highest-value remaining retrieval work and needs
+   no re-seeding to evaluate.
+
+**2.4 (table extraction) should wait** for the financial corpus to be restocked. With two
+financial documents it cannot demonstrate anything either way.
 
 **2.6 — Implement D8 backfill**
 - Files: `core/index/base.py`, `core/index/pgvector.py`, `core/api/routes/search.py`

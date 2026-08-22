@@ -66,13 +66,33 @@ Turns chunk text into dense vectors for semantic search:
 
 Persists embedded chunks and serves vector search:
 
-- `base.py`: `VectorStore` ABC defining the storage contract — `setup()`, `store_chunks(...)`, `search(query_embedding, user_id, top_k, date_from, date_to) -> list[SearchResult]`, `list_documents(user_id) -> list[DocumentInfo]`, `update_document_date(document_id, user_id, document_date)`, `delete_document(document_id, user_id)`, `delete_all_for_user(user_id) -> int`, `close()`.
+- `base.py`: `VectorStore` ABC defining the storage contract — `setup()`, `store_chunks(...)`, `search(query_embedding, user_id, top_k, date_from, date_to, date_mode) -> list[SearchResult]`, `list_documents(user_id) -> list[DocumentInfo]`, `update_document_date(document_id, user_id, document_date)`, `delete_document(document_id, user_id)`, `delete_all_for_user(user_id) -> int`, `close()`.
 - `pgvector.py`: `PgVectorStore` — Supabase/hosted Postgres implementation.
-- `local.py`: `LocalPgVectorStore` — local Postgres implementation, same schema/interface.
-- `config.py`: `get_vector_store()` returns a cached singleton, picking `LocalPgVectorStore` or `PgVectorStore` based on `QUERYNEST_STORAGE_MODE` (`local` vs. default `supabase`).
+- `local.py`: `LocalPgVectorStore` — local Postgres implementation, same schema/interface. Reads its connection string exclusively from `QUERYNEST_LOCAL_DATABASE_URL` (not `QUERYNEST_DATABASE_URL`), so the two storage modes can never accidentally share credentials.
+- `config.py`: `get_vector_store()` returns a cached singleton, picking `LocalPgVectorStore` or `PgVectorStore` based on `QUERYNEST_STORAGE_MODE` (`local` vs. default `supabase`). Also exposes `get_storage_mode() -> str` (reads `QUERYNEST_STORAGE_MODE`, defaulting to `"supabase"`) and `is_store_configured() -> bool`, which checks whether the connection-string variable for the *current* mode is set (`QUERYNEST_LOCAL_DATABASE_URL` for `local`, `QUERYNEST_DATABASE_URL` otherwise) — checking `QUERYNEST_DATABASE_URL` alone would wrongly report "no database" while running in local mode.
 
 **Input**: chunk texts, embeddings, and metadata (headings, pages, chunk indices, document date, source blocks)
-**Output**: stored rows; `search()` returns ranked `SearchResult`s, optionally pre-filtered by a `[date_from, date_to]` range on `document_date`.
+**Output**: stored rows; `search()` returns ranked `SearchResult`s, optionally pre-filtered by a `[date_from, date_to]` range on `document_date` and a `date_mode` tier (see D12 below).
+
+**Date filtering is three-tiered, not a boolean (D12).** `SearchResult` does not carry a
+`within_date_range` flag — it carries `date_match: str`, one of four values defined in
+`core/index/base.py`:
+
+| `date_match` | Meaning |
+|---|---|
+| `in_range` | Document has a date, and it falls inside the requested range |
+| `undated` | Document has no detectable date — it *might* match |
+| `out_of_range` | Document has a date, and it falls outside the requested range |
+| `unfiltered` | No date filter was applied to this search at all |
+
+When a query carries a date filter, `core/api/routes/search.py` queries the store tier by tier
+(`in_range` → `undated` → `out_of_range`), each call asking only for the shortfall needed to
+reach `top_k`, stopping as soon as `top_k` is met. The route stamps `date_match` on each result
+itself rather than trusting the store to do it, so the label can't drift between store
+implementations. Tier order beats similarity score deliberately — a high-scoring out-of-range
+document ranks below a lower-scoring in-range one. See D12 in `docs/decisions.md` for the full
+rationale (undated documents rank above known-wrong ones because "unknown" and "known wrong" are
+different confidence levels, not the same non-match).
 
 ### Stage 5: Query Parsing
 
@@ -155,6 +175,7 @@ Index-layer types (`core/index/base.py`), distinct from the ingestion-layer mode
 | `page` | `int` | Page of the chunk's first block |
 | `document_date` | `date \| None` | Resolved document date |
 | `source_blocks` | `list[SourceBlock]` | Blocks making up the chunk |
+| `date_match` | `str` | D12 tier: `"in_range"`, `"undated"`, `"out_of_range"`, or `"unfiltered"` (default) |
 
 **DocumentInfo** — one row in a document listing.
 
@@ -205,11 +226,16 @@ Index-layer types (`core/index/base.py`), distinct from the ingestion-layer mode
 
 Golden-query-set retrieval evaluation. See `docs/evaluation.md` for full methodology.
 
-- `runner.py`: `load_golden(path) -> list[EvalQuery]` parses the golden dataset; `run_search(query_text, top_k)` calls `POST /api/search` on a running API instance; `run_eval(golden_path, top_k) -> list[QueryResult]` runs every golden query and computes precision@{5,10}, recall@{5,10}, nDCG@10, and MRR per query.
+- `runner.py`: `load_golden(path) -> list[EvalQuery]` parses the golden dataset; `run_search(query_text, top_k)` calls `POST /api/search` on a running API instance (`DEFAULT_API_URL = "http://127.0.0.1:8000"` — use `127.0.0.1`, not `localhost`; on Windows, `localhost` resolves via IPv6 first and adds ~2s of latency per request); `run_eval(golden_path, top_k) -> list[QueryResult]` runs every golden query and computes precision@{5,10}, recall@{5,10}, nDCG@10, and MRR per query; `get_git_commit()` returns the short git hash for tagging reports.
 - `metrics.py`: `precision_at_k`, `recall_at_k`, `ndcg_at_k`, `mrr` — pure functions over retrieved/relevant id lists.
+- `baselines.py`: BM25 keyword baseline (Phase 1.4/D-series) via Postgres full-text search (`to_tsvector`/`ts_rank`/`to_tsquery`) over `chunks.text` — no new dependency, same table the semantic path uses. `bm25_search(query_text, ...)` ranks documents by best per-chunk `ts_rank`; `run_eval_bm25(golden_path, ...)` is the BM25 counterpart to `runner.run_eval`, same scoring, so the two are directly comparable. Query terms are OR-joined (not AND, which returned zero documents for over half the golden queries in testing) and date expressions are stripped via `core.query.parser.parse_query` first, mirroring what the semantic path does before embedding.
 - `report.py`: `print_report(results)` prints a console summary; `generate_report(results, output_dir)` writes a timestamped, git-commit-tagged JSON report (aggregate metrics, by-type breakdown, worst queries by MRR, per-query results) to `reports/`.
 - `download_pdfs.py`: Fetches the fixture PDFs used by the golden dataset into `data/eval/pdfs/<category>/`.
 - `__main__.py`: `python -m core.eval` — runs `run_eval` against `data/eval/golden.json`, prints the report, and saves it to `reports/`.
+
+**Two golden query sets exist** in `data/eval/`: `golden.json` (the primary set) and
+`golden_paraphrased.json` (the same queries reworded, used to check whether retrieval quality
+holds up under phrasing variation rather than being tuned to one exact wording).
 
 ### core/api/ (Dev Only)
 
@@ -246,13 +272,20 @@ React + TypeScript + Vite app for inspecting extraction output. Shows chunk list
 **Primary**: pgvector in Supabase Postgres
 
 - Vectors stored as `vector` column alongside document/chunk metadata
-- HNSW index for approximate nearest neighbor search
+- **HNSW index** (`USING hnsw (embedding vector_cosine_ops)`) for approximate nearest neighbor
+  search — not IVFFlat. IVFFlat learns its cluster centroids from the rows present at
+  index-build time, and `setup()` runs against an empty table; the resulting index was
+  degenerate (queries returned zero rows at the default `ivfflat.probes = 1`). HNSW builds
+  incrementally as rows are inserted and cannot reach that state. See **D11** in
+  `docs/decisions.md`.
 - SQL WHERE clauses for metadata filtering (year, subject, type)
 - Row-level security for user isolation
 
 **Local Mode** (Desktop only):
 - PostgreSQL with pgvector extension running locally
 - Same schema as Supabase for consistency
+- Connection string comes exclusively from `QUERYNEST_LOCAL_DATABASE_URL`, kept separate from
+  the Supabase-mode `QUERYNEST_DATABASE_URL` (see `core/index/config.py` above)
 - Optional sync to Supabase for mobile access
 
 ### Data Flow
