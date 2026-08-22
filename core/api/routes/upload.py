@@ -123,6 +123,8 @@ def _process_file(
             except Exception as e:  # noqa: BLE001
                 index_error = str(e)
 
+        processing_ms = (time.perf_counter() - start) * 1000
+
         if index_error is not None:
             update_file_status(
                 job_id,
@@ -132,7 +134,7 @@ def _process_file(
                 detected_date=detected_date.isoformat() if detected_date else None,
                 date_source=date_source,
                 error=index_error,
-                processing_ms=(time.perf_counter() - start) * 1000,
+                processing_ms=processing_ms,
             )
         else:
             update_file_status(
@@ -142,7 +144,20 @@ def _process_file(
                 document_id=doc_id,
                 detected_date=detected_date.isoformat() if detected_date else None,
                 date_source=date_source,
-                processing_ms=(time.perf_counter() - start) * 1000,
+                processing_ms=processing_ms,
+            )
+            # Phase 3.1 (docs/plan.md): track ingest cost as a regression
+            # metric. Observability only — never allowed to affect upload
+            # outcome, hence the swallow-everything try/except inside
+            # record_ingest itself.
+            from core.api.ingest_metrics import record_ingest
+
+            record_ingest(
+                filename=filename,
+                page_count=len(doc.pages),
+                file_bytes=len(file_data),
+                chunk_count=len(chunks),
+                processing_ms=processing_ms,
             )
     except (RuntimeError, OSError, ValueError) as e:
         update_file_status(
