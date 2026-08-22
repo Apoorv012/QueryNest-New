@@ -33,6 +33,8 @@ export interface SourceBlock {
   type: string;
 }
 
+export type DateMatch = 'in_range' | 'undated' | 'out_of_range' | 'unfiltered';
+
 export interface SearchResult {
   chunk_id: number;
   document_id: string;
@@ -42,6 +44,7 @@ export interface SearchResult {
   page: number;
   document_date: string | null;
   source_blocks: SourceBlock[];
+  date_match: DateMatch;
 }
 
 export interface SearchResponse {

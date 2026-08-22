@@ -95,20 +95,10 @@ MRR = 1 / rank_of_first_relevant
 
 ### Sample PDFs Needed
 
-**Question Papers (5-10 PDFs)**:
-- Computer Science exams (OS, DBMS, Networks, Algorithms)
-- Math exams (Calculus, Linear Algebra, Probability)
-- Physics exams (Mechanics, Electromagnetism)
-
-**Academic Papers (10-15 PDFs)**:
-- AI/ML papers (transformers, embeddings, RAG)
-- Systems papers (databases, distributed systems)
-- Theory papers (complexity, algorithms)
-
-**Accounting Papers (5-10 PDFs)**:
-- Annual reports (public companies)
-- Financial statements
-- Audit reports
+> **Superseded by the actual corpus.** This section listed a target of 20-35 PDFs including
+> university exam papers. The corpus settled at **18 documents** across three families (see
+> *Corpus Reproducibility* below and **D7**/**D10** in `decisions.md`); exam papers were dropped
+> as unextractable scans. Kept as a record of the original intent.
 
 ### Query Types
 
@@ -162,8 +152,8 @@ Parsed by `core.eval.runner.load_golden()`. Relevance is judged per **document**
 - **Target**: 100+ queries
 - **Distribution**: 40% factual, 30% definitional, 20% comparative, 10% procedural
 
-**Actual, as of 2026-08-20:** 45 literal queries (`golden.json`) + 40 paraphrased
-(`golden_paraphrased.json`) = **85 across two sets**, over 17 documents. The practical ceiling
+**Actual, as of 2026-08-22:** 49 literal queries (`golden.json`) + 43 paraphrased
+(`golden_paraphrased.json`) = **92 across two sets**, over 18 documents. The practical ceiling
 is ~3 queries per document before they test the same thing twice, so growing past this needs
 more documents, not more query writing.
 
@@ -451,3 +441,37 @@ bind port 8000 and the eval runs against stale code, producing identical numbers
 ```powershell
 Get-NetTCPConnection -LocalPort 8000 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
 ```
+
+---
+
+## Corpus Reproducibility
+
+The corpus is **10 of 18 documents reconstructible from this repo.**
+
+| Source | Count | Notes |
+|---|---|---|
+| `download_pdfs` | 10 | Public arXiv / shareholder-letter PDFs, re-fetchable |
+| Local only | 8 | 7 career documents + `sensors-25-03183.pdf` — third-party material, not redistributable |
+
+`data/eval/pdfs/` is gitignored (redistribution and repo weight), so the corpus is *described*
+rather than shipped:
+
+```bash
+python -m core.eval.corpus_manifest            # regenerate data/eval/corpus_manifest.json
+python -m core.eval.corpus_manifest --verify   # check disk against it, non-zero exit on drift
+```
+
+The manifest records `filename`, `sha256`, `page_count`, `bytes`, `family` and `source` for every
+document. Anyone can therefore confirm they are evaluating the identical corpus — or see exactly
+how theirs differs — without needing the bytes. **Any metric should be read against a manifest
+state**; a corpus change invalidates comparability, as happened when the mislabeled
+`mixture_of_experts_2024.pdf` was replaced.
+
+Regenerate the manifest whenever the corpus changes. A stale manifest is worse than none: it
+confidently describes a corpus that no longer exists, which is the same failure mode it exists
+to catch.
+
+**`download_pdfs.py` will not rebuild the excluded documents.** Five entries
+(`gpt3_2020`, `berkshire_2024`, `gsk_2024`, `unilever_2024`, `ppl_2024`) exceed the ~45 page cap
+set by **D10** and live in `EXCLUDED_BY_D10`, recorded but never fetched. Re-enabling any of them
+grows the corpus 18 → 23 and roughly triples re-seed time, shifting every baseline.

@@ -588,6 +588,159 @@ what your users wanted and did not get.
 
 ---
 
+---
+
+## 4. Next block of work (planned 2026-08-22)
+
+Four workstreams. **The ordering matters** — see the dependency note before starting.
+
+### Dependency: 4.1 must land before 3.2
+
+Both change the schema, and `content_hash` belongs on a `documents` table, not on `chunks`.
+Doing 3.2 first means adding `content_hash` to every chunk row and then migrating it out
+again during 4.1. Do **4.1 → 3.2**, or fold 3.2 into 4.1 as one schema change.
+
+RRF (6.1) and the dashboard work (6.3) touch neither schema nor each other, so they can run in
+parallel with anything.
+
+---
+
+### 6.1 — RRF hybrid retrieval
+
+Fuse the existing semantic and keyword retrievers with Reciprocal Rank Fusion.
+
+**Why RRF rather than blending scores:** the two retrievers produce incomparable numbers —
+cosine similarity in [0,1] (observed 0.60–0.70) versus unbounded `ts_rank`. Score blending needs
+normalisation that is fragile and needs tuning per corpus. RRF uses only ranks:
+
+```
+score(doc) = Σ over retrievers  1 / (k + rank_in_that_retriever)      k ≈ 60
+```
+
+**Measured headroom** (from `data/eval/baselines/2026-08-21_post-corpus-fix_*`, counting
+MRR ≥ 0.5 as "good"):
+
+| | Literal (49) | Paraphrased (43) |
+|---|---|---|
+| Both retrievers good | 92% | 65% |
+| Only semantic good — **at risk from fusion** | 6% | 19% |
+| Only BM25 good — **rescuable** | 2% | 7% |
+| Neither good — hard floor, RRF cannot help | 0% | 9% |
+| Hybrid ceiling vs semantic-only | 100% vs 98% | **91% vs 84%** |
+
+Realistic expectation is **+3–5 points paraphrased MRR**, not +7: the ceiling assumes fusion
+always picks the better retriever, and the 19% "only semantic good" band is what BM25 can drag
+down.
+
+- Files: new `core/search/fusion.py`; wire into `core/api/routes/search.py` behind a flag.
+- Keep semantic-only reachable (config flag or request field) so the comparison stays runnable.
+- Extend `core/eval/` to score a third retriever, reusing `runner.score_retrieved` so all three
+  share identical dedup and metric logic.
+- **Acceptance, agreed in advance to avoid post-hoc rationalising:** accept only if paraphrased
+  MRR improves **and literal MRR does not regress**. Sweep `k` ∈ {10, 30, 60, 100} — cheap,
+  because fusion is query-time only and needs **no re-seed** (~4 min per measurement).
+- Record the result either way, including if it fails.
+
+---
+
+### 6.2 (was 3.2) — Content-hash deduplication  *(do after 4.1)*
+
+Re-uploading a file reprocesses it from scratch at ~1,790 ms/page. This is the only unambiguous
+win left in Phase 3: it removes work rather than rearranging it, which is why it survived when
+every parallelism idea failed.
+
+- SHA-256 the uploaded bytes; store on `documents` with a unique constraint on
+  `(user_id, content_hash)`.
+- On collision, short-circuit and return the existing `document_id` — do not re-extract, re-chunk
+  or re-embed.
+- The API response must distinguish "already present" from "newly ingested" so the UI can say so
+  rather than implying work happened.
+- Acceptance: uploading the same PDF twice yields one document, and the second call returns in
+  well under a second.
+
+---
+
+### 6.3 (was 3.3) — Dashboard UX
+
+Two of these are **live bugs**, not polish. Both hide information the backend already provides.
+
+**6.3a — `indexed_partially` is rendered as success.** `FileList.tsx:113` branches only on
+`error`, so a file that extracted but failed to index shows a normal timing and looks fine. This
+is exactly the silent-failure bug Phase 0.2 fixed in the backend, still live in the UI.
+*Acceptance:* a partially-indexed file is visually distinct from a fully-indexed one and shows
+its error text.
+
+**6.3b — D12 tiers are invisible.** `/search` returns `date_match` (`in_range` / `undated` /
+`out_of_range` / `unfiltered`); the dashboard ignores it. D12's recorded risk was precisely that
+silently mixing tiers makes the date filter feel broken.
+*Acceptance:* tier boundaries are visible — a divider or label such as "No date on record" and
+"Outside the requested range" — and `SearchResult` in `lib/api.ts` carries `date_match`.
+
+**6.3c — Per-file stage progress.** Files sit at `pending` through extraction, chunking and
+embedding with no movement. Surface the stage (`extracting` → `embedding` → `done`) and an
+estimate from page count using the `reports/ingest.json` data from 3.1. At ~1,790 ms/page, a
+40-page document is over a minute of apparent nothing.
+*Acceptance:* the dashboard never shows a frozen bar during a long ingest.
+
+**6.3d — Surface the parsed query.** The UI shows `parsed_query` but not what was stripped. When
+"papers from 2020 to 2023" silently becomes "papers", the user should see the date filter that
+was applied and be able to clear it.
+
+---
+
+### 6.4 (was 4.1) — Normalise the `documents` table
+
+Currently `filename`, `user_id` and `document_date` are repeated on **every chunk row**, so
+re-dating a document rewrites all of its chunks and there is nowhere to hang document-level
+metadata.
+
+**Target schema:**
+
+```sql
+CREATE TABLE documents (
+    document_id   TEXT PRIMARY KEY,
+    user_id       TEXT NOT NULL,
+    filename      TEXT NOT NULL,
+    document_date DATE,
+    content_hash  TEXT NOT NULL,          -- enables 6.2
+    page_count    INTEGER,
+    chunk_count   INTEGER,
+    storage_path  TEXT,                   -- enables 4.4 (object storage)
+    created_at    TIMESTAMP DEFAULT NOW(),
+    UNIQUE (user_id, content_hash)
+);
+-- chunks keeps: id, document_id FK, chunk_index, text, heading, embedding, page, source_blocks
+```
+
+**Migration is the risky part.** The `chunks` table holds the only copy of the metadata, so the
+migration must backfill `documents` from `SELECT DISTINCT` over `chunks` before dropping the
+duplicated columns. Write it as an explicit, re-runnable migration — not an incremental
+`setup()` mutation. `setup()` is already doing `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` and
+`DROP INDEX`, which is how the corpus survived the HNSW change, but a column *drop* is not
+safely idempotent in the same way.
+
+- Update the `VectorStore` ABC: `search()` and `list_documents()` need a join; `store_chunks()`
+  should take a `document_id` that already exists in `documents`.
+- **Flagging per CLAUDE.md:** this modifies `DocumentInfo` and the `VectorStore` contract.
+- Both stores (`PgVectorStore`, `LocalPgVectorStore`) share the SQL, so the change lands once.
+- **Verify against a re-seed and re-measure**: this touches every query path, and the metrics
+  must be unchanged. Any movement means the join changed retrieval, which would be a bug.
+- Acceptance: `update_document_date` touches exactly one row; metrics identical to the
+  pre-migration baseline.
+
+---
+
+### Suggested execution split
+
+| Task | Who | Why |
+|---|---|---|
+| 6.1 RRF | Together | Needs judgement reading eval deltas; acceptance criteria agreed above |
+| 6.2 content hash | Sonnet | Mechanical once 4.1 lands, binary acceptance |
+| 6.3a/b/d dashboard | Sonnet | Well-specified UI work against a known API shape |
+| 6.3c stage progress | Sonnet | Needs a small backend status addition too |
+| 6.4 documents table | Together | Schema migration with a data-loss failure mode |
+
+
 ## 5. Suggested execution split
 
 | Phase | Recommended | Why |

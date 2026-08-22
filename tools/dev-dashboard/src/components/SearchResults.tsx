@@ -1,8 +1,17 @@
-import type { SearchResponse } from '../lib/api';
+import type { DateMatch, SearchResponse } from '../lib/api';
 
 interface Props {
   result: SearchResponse | null;
 }
+
+// D12: three confidence tiers, in the order results already arrive in.
+// `in_range` needs no heading — it's what the user expects. `undated` and
+// `out_of_range` get a visible divider so the date filter never silently
+// mixes verified matches with guesses or known non-matches.
+const TIER_HEADINGS: Partial<Record<DateMatch, string>> = {
+  undated: 'No date on record — may or may not match',
+  out_of_range: 'Outside the requested date range',
+};
 
 export function SearchResults({ result }: Props) {
   if (!result) {
@@ -21,42 +30,66 @@ export function SearchResults({ result }: Props) {
     );
   }
 
+  const dateFilterApplied = Boolean(result.date_from || result.date_to);
+  const wasRewritten = result.parsed_query !== result.query;
+  let lastTier: DateMatch | null = null;
+
   return (
     <div className="space-y-3">
-      <div className="text-xs text-gray-400 mb-2">
-        Query: &quot;{result.parsed_query}&quot;
-        {result.date_from && <span> from {result.date_from}</span>}
-        {result.date_to && <span> to {result.date_to}</span>}
-        <span> — {result.results.length} results</span>
+      <div className="text-xs text-gray-400 mb-2 space-y-0.5">
+        <div>
+          Query: &quot;{result.parsed_query}&quot;
+          <span> — {result.results.length} results</span>
+        </div>
+        {wasRewritten && (
+          <div className="text-amber-600">
+            Typed: &quot;{result.query}&quot; — date expression stripped before searching
+          </div>
+        )}
+        {dateFilterApplied && (
+          <div className="text-blue-600">
+            Filtered to {result.date_from ?? '…'} → {result.date_to ?? '…'}
+          </div>
+        )}
       </div>
 
-      {result.results.map((r, i) => (
-        <div
-          key={r.chunk_id}
-          className="border rounded p-3 hover:bg-gray-50"
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded">
-              #{i + 1}
-            </span>
-            <span className="text-xs font-mono text-blue-600">
-              {r.score.toFixed(3)}
-            </span>
-            {r.heading && (
-              <span className="text-xs text-gray-500 font-medium">
-                {r.heading}
-              </span>
+      {result.results.map((r, i) => {
+        const showHeading =
+          dateFilterApplied && r.date_match !== lastTier && TIER_HEADINGS[r.date_match];
+        lastTier = r.date_match;
+
+        return (
+          <div key={r.chunk_id}>
+            {showHeading && (
+              <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold mt-4 mb-2 pt-2 border-t">
+                {TIER_HEADINGS[r.date_match]}
+              </div>
             )}
+            <div className="border rounded p-3 hover:bg-gray-50">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded">
+                  #{i + 1}
+                </span>
+                <span className="text-xs font-mono text-blue-600">
+                  {r.score.toFixed(3)}
+                </span>
+                {r.heading && (
+                  <span className="text-xs text-gray-500 font-medium">
+                    {r.heading}
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-gray-400 mb-1">
+                Page {r.page + 1}
+                {r.document_date && <span> · {r.document_date}</span>}
+              </div>
+              <div className="text-sm text-gray-700 leading-relaxed">
+                {r.text}
+              </div>
+            </div>
           </div>
-          <div className="text-xs text-gray-400 mb-1">
-            Page {r.page + 1}
-            {r.document_date && <span> · {r.document_date}</span>}
-          </div>
-          <div className="text-sm text-gray-700 leading-relaxed">
-            {r.text}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

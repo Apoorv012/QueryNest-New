@@ -155,10 +155,46 @@ class TestUpload:
         status = client.get(f"/upload/{job_id}/status").json()
         assert status["status"] in ("done", "failed")  # terminal, not "processing"
         file_status = status["files"][0]
-        assert file_status["status"] != "done"
-        assert file_status["status"] == "indexed_partially"
+        # Ingest is atomic: an indexing failure is a failed upload, not a
+        # partial one. There is no third terminal state.
+        assert file_status["status"] == "error"
         assert file_status["error"] is not None
         assert "connection refused" in file_status["error"]
+
+        # ...and the side effects that preceded indexing must be rolled back,
+        # so nothing is left behind claiming to be a document.
+        from core.api.store import get_chunks
+
+        doc_id = file_status["document_id"]
+        if doc_id:
+            assert get_chunks(doc_id) is None, "in-memory chunk entry not rolled back"
+            resp = client.get(f"/documents/{doc_id}/pdf")
+            assert resp.status_code == 404, "PDF left on disk after failed ingest"
+
+    def test_rollback_failure_still_reports_error(self, client):
+        # A rollback that cannot finish must never let the upload report
+        # success — the original failure has to win.
+        from unittest.mock import MagicMock
+
+        fake_store = MagicMock()
+        fake_store.store_chunks.side_effect = RuntimeError("db gone")
+
+        with patch("core.api.routes.upload._has_pgvector", True), \
+             patch("core.index.get_vector_store", return_value=fake_store), \
+             patch(
+                 "core.api.routes.upload._rollback_ingest",
+                 side_effect=OSError("cannot delete"),
+             ):
+            data = _upload_pdf(client)
+
+        status = client.get(f"/upload/{data['job_id']}/status").json()
+        file_status = status["files"][0]
+        assert file_status["status"] == "error"
+        assert status["status"] in ("done", "failed")  # still terminal
+        # The ORIGINAL failure must surface, not the rollback's failure —
+        # otherwise the user is told "cannot delete" instead of the real cause.
+        assert "db gone" in file_status["error"]
+        assert "cannot delete" not in file_status["error"]
 
     def test_upload_never_constructs_a_real_vector_store(self, client):
         # Regression guard for the leak where `_has_pgvector` (computed at

@@ -39,6 +39,39 @@ def _read_capped(f: UploadFile, max_bytes: int) -> bytes:
     return b"".join(chunks)
 
 
+class IngestFailed(RuntimeError):
+    """Ingest failed after side effects were already written and rolled back.
+
+    Distinct from a plain RuntimeError so the handler can tell "this document
+    was cleaned up" from "this blew up somewhere unexpected".
+    """
+
+
+def _rollback_ingest(doc_id: str, pdf_path: Path | None) -> None:
+    """Undo the side effects that precede indexing, best effort.
+
+    Two writes happen before a document is searchable: the in-memory chunk
+    entry and the PDF on disk. Neither is transactional with the vector store,
+    so on an indexing failure they are removed here.
+
+    Deliberately swallows its own failures: a rollback that cannot finish must
+    not mask the original error, and must never let the caller report success.
+    A leftover PDF is invisible anyway — nothing references a document_id that
+    was never indexed.
+    """
+    from core.api.store import _documents
+
+    try:
+        _documents.pop(doc_id, None)
+    except Exception:  # noqa: BLE001, S110 - see docstring
+        pass
+    if pdf_path is not None:
+        try:
+            pdf_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
 def _is_pdf_content(data: bytes) -> bool:
     """Check the PDF signature (%PDF- header, %%EOF trailer) rather than trusting the filename."""
     return data.startswith(b"%PDF-") and b"%%EOF" in data[-2048:]
@@ -81,9 +114,21 @@ def _process_file(
         if not pdf_dir.is_relative_to(UPLOAD_DIR):
             raise ValueError(f"Invalid user_id: {user_id!r}")
         pdf_dir.mkdir(parents=True, exist_ok=True)
-        (pdf_dir / f"{doc_id}.pdf").write_bytes(file_data)
+        stored_pdf_path = pdf_dir / f"{doc_id}.pdf"
+        stored_pdf_path.write_bytes(file_data)
 
-        index_error: str | None = None
+        # Indexing is the last step and the one that makes a document
+        # findable. If it fails, roll back the two side effects that already
+        # happened (the on-disk PDF and the in-memory chunk entry) so a file is
+        # either fully ingested or not ingested at all.
+        #
+        # The alternative — keeping the extracted work and reporting a partial
+        # state — was tried and removed: nothing could act on it. There is no
+        # retry path, so the state was unrecoverable except by re-uploading,
+        # which redoes the expensive extraction anyway. It also set a trap for
+        # content-hash dedup: a stored-but-unindexed document would later match
+        # its own hash and short-circuit a re-upload to something still
+        # unsearchable.
         if _has_pgvector:
             try:
                 from core.embedding import FastEmbedEmbedder
@@ -118,48 +163,44 @@ def _process_file(
                     document_date=detected_date,
                     source_blocks=source_blocks_data,
                 )
-            # Any embed/store failure (including psycopg2.Error, which is
-            # neither RuntimeError nor OSError) must not report "done".
-            except Exception as e:  # noqa: BLE001
-                index_error = str(e)
+            # Catch Exception, not (RuntimeError, OSError): psycopg2.Error is
+            # neither, and letting it escape used to pin the job at "pending".
+            except Exception as e:
+                # The original indexing error must always be what surfaces.
+                # _rollback_ingest already swallows its own failures, but guard
+                # here too: if rollback ever raised, its message would replace
+                # the real cause and the user would be told "cannot delete"
+                # instead of "connection refused".
+                try:
+                    _rollback_ingest(doc_id, stored_pdf_path)
+                except Exception:  # noqa: BLE001, S110 - original error wins
+                    pass
+                raise IngestFailed(f"indexing failed: {e}") from e
 
         processing_ms = (time.perf_counter() - start) * 1000
 
-        if index_error is not None:
-            update_file_status(
-                job_id,
-                index,
-                status="indexed_partially",
-                document_id=doc_id,
-                detected_date=detected_date.isoformat() if detected_date else None,
-                date_source=date_source,
-                error=index_error,
-                processing_ms=processing_ms,
-            )
-        else:
-            update_file_status(
-                job_id,
-                index,
-                status="done",
-                document_id=doc_id,
-                detected_date=detected_date.isoformat() if detected_date else None,
-                date_source=date_source,
-                processing_ms=processing_ms,
-            )
-            # Phase 3.1 (docs/plan.md): track ingest cost as a regression
-            # metric. Observability only — never allowed to affect upload
-            # outcome, hence the swallow-everything try/except inside
-            # record_ingest itself.
-            from core.api.ingest_metrics import record_ingest
+        update_file_status(
+            job_id,
+            index,
+            status="done",
+            document_id=doc_id,
+            detected_date=detected_date.isoformat() if detected_date else None,
+            date_source=date_source,
+            processing_ms=processing_ms,
+        )
+        # Phase 3.1 (docs/plan.md): track ingest cost as a regression metric.
+        # Observability only — never allowed to affect the upload outcome,
+        # hence the swallow-everything try/except inside record_ingest itself.
+        from core.api.ingest_metrics import record_ingest
 
-            record_ingest(
-                filename=filename,
-                page_count=len(doc.pages),
-                file_bytes=len(file_data),
-                chunk_count=len(chunks),
-                processing_ms=processing_ms,
-            )
-    except (RuntimeError, OSError, ValueError) as e:
+        record_ingest(
+            filename=filename,
+            page_count=len(doc.pages),
+            file_bytes=len(file_data),
+            chunk_count=len(chunks),
+            processing_ms=processing_ms,
+        )
+    except (IngestFailed, RuntimeError, OSError, ValueError) as e:
         update_file_status(
             job_id,
             index,

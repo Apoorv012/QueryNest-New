@@ -1,3 +1,20 @@
+"""Fetch the publicly-redistributable part of the eval corpus.
+
+**This does NOT rebuild the whole corpus.** It fetches 10 of the 18 documents in
+`data/eval/pdfs/`. The other 8 (the career-document family and
+`sensors-25-03183.pdf`) came from a local, gitignored folder and are not
+redistributable, so they cannot be downloaded here.
+
+`data/eval/corpus_manifest.json` describes all 18 with hashes, so the corpus is
+verifiable even where the bytes cannot be shipped. Regenerate and check it with
+`python -m core.eval.corpus_manifest [--verify]`.
+
+Each entry carries an `expect` keyword that must appear in the downloaded PDF's
+text. That guard exists because `mixture_of_experts_2024.pdf` was for a long
+time a 6G optical-wireless paper — the URL was simply wrong, nothing verified
+it, and four golden queries were silently unanswerable as a result.
+"""
+
 from __future__ import annotations
 
 import sys
@@ -9,7 +26,6 @@ import fitz  # type: ignore[import-untyped]  # PyMuPDF, transitive dep of pymupd
 import requests
 
 PDFS: list[dict[str, str]] = [
-    # Academic Papers (arXiv) — all tested OK
     {
         "category": "academic",
         "name": "attention_2017.pdf",
@@ -23,13 +39,6 @@ PDFS: list[dict[str, str]] = [
         "url": "https://arxiv.org/pdf/1810.04805.pdf",
         "year": "2018",
         "expect": "masked language",
-    },
-    {
-        "category": "academic",
-        "name": "gpt3_2020.pdf",
-        "url": "https://arxiv.org/pdf/2005.14165.pdf",
-        "year": "2020",
-        "expect": "few-shot",
     },
     {
         "category": "academic",
@@ -66,12 +75,6 @@ PDFS: list[dict[str, str]] = [
         "year": "2024",
         "expect": "mixture of experts",
     },
-    # NOTE: this URL previously pointed to arXiv 2404.04443, which despite its old
-    # filename ("mixture_of_experts_2024.pdf") is NOT a mixture-of-experts paper — it
-    # resolves to "A Novel Terabit Grid-of-Beam Optical Wireless Multi-User Access
-    # Network with Beam Clustering" (Kazemi et al.), a 6G optical wireless / photonics
-    # paper. The mismatch went undetected because nothing verified downloaded content
-    # against the filename (see the `expect` field below, added to prevent a repeat).
     {
         "category": "academic",
         "name": "optical_wireless_6g_2024.pdf",
@@ -79,7 +82,6 @@ PDFS: list[dict[str, str]] = [
         "year": "2024",
         "expect": "optical wireless",
     },
-    # Accounting Reports
     {
         "category": "accounting",
         "name": "berkshire_2022.pdf",
@@ -93,6 +95,22 @@ PDFS: list[dict[str, str]] = [
         "url": "https://www.berkshirehathaway.com/letters/2023ltr.pdf",
         "year": "2023",
         "expect": "Berkshire Hathaway",
+    },
+]
+
+# Recorded, never downloaded. These exceed the ~45 page cap set by D10
+# (see docs/decisions.md). They are kept here deliberately rather than
+# deleted: without this record, someone re-adds gsk_2024.pdf, waits out a
+# ~30 minute seed, and rediscovers the page cap from scratch. Re-enabling
+# any of these grows the corpus from 18 to 23 documents and roughly
+# triples re-seed time, shifting every baseline.
+EXCLUDED_BY_D10: list[dict[str, str]] = [
+    {
+        "category": "academic",
+        "name": "gpt3_2020.pdf",
+        "url": "https://arxiv.org/pdf/2005.14165.pdf",
+        "year": "2020",
+        "expect": "few-shot",
     },
     {
         "category": "accounting",

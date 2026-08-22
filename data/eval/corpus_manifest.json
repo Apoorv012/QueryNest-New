@@ -1,0 +1,151 @@
+{
+  "document_count": 18,
+  "reconstructible_from_repo": 10,
+  "local_only": 8,
+  "documents": [
+    {
+      "filename": "attention_2017.pdf",
+      "family": "academic",
+      "sha256": "bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697",
+      "page_count": 15,
+      "bytes": 2215244,
+      "source": "download_pdfs"
+    },
+    {
+      "filename": "bert_2018.pdf",
+      "family": "academic",
+      "sha256": "5692a5514787a8c6727b4ff3b726a3385798bc68e12138d1d4af83947e2acf6e",
+      "page_count": 16,
+      "bytes": 775166,
+      "source": "download_pdfs"
+    },
+    {
+      "filename": "chain_of_thought_2022.pdf",
+      "family": "academic",
+      "sha256": "7d9f878c23b460e4566aa4ec9201b1abfb3b8faefb2b1356e411cb90fef72a12",
+      "page_count": 43,
+      "bytes": 891773,
+      "source": "download_pdfs"
+    },
+    {
+      "filename": "llama_2023.pdf",
+      "family": "academic",
+      "sha256": "2e663675ae36ad12adb2f5a05281bac2747ecf8d23d92bedd9f937a89fee7136",
+      "page_count": 27,
+      "bytes": 726566,
+      "source": "download_pdfs"
+    },
+    {
+      "filename": "mixture_of_experts_2024.pdf",
+      "family": "academic",
+      "sha256": "f8bbf0e9d979b7a8ce7be65119266545a229a85b57e077d8bd048e458bb642da",
+      "page_count": 13,
+      "bytes": 2475990,
+      "source": "download_pdfs"
+    },
+    {
+      "filename": "optical_wireless_6g_2024.pdf",
+      "family": "academic",
+      "sha256": "d7ae0591bdaf41a343d1cce8239f546d30cd933f136d3195a8d2f01b7c41ebdc",
+      "page_count": 16,
+      "bytes": 8949102,
+      "source": "download_pdfs"
+    },
+    {
+      "filename": "rag_2020.pdf",
+      "family": "academic",
+      "sha256": "23e3249e9a1e75418d82efecab0ea8c4d033b89c93742f63208d47ce01f21233",
+      "page_count": 19,
+      "bytes": 885323,
+      "source": "download_pdfs"
+    },
+    {
+      "filename": "sensors-25-03183.pdf",
+      "family": "academic",
+      "sha256": "015c2e024f2c6618fc83419325e1ef8566de4eb820eae68f993a76e1eae916bc",
+      "page_count": 21,
+      "bytes": 8182675,
+      "source": "local"
+    },
+    {
+      "filename": "vit_2020.pdf",
+      "family": "academic",
+      "sha256": "8ce7b83971a14508ca711a27c875c9b6914c4f6767cf3150fb1ca6c07aa056d6",
+      "page_count": 22,
+      "bytes": 3743814,
+      "source": "download_pdfs"
+    },
+    {
+      "filename": "berkshire_2022.pdf",
+      "family": "accounting",
+      "sha256": "a99f263003295b177e8c50ec34f2307093857a357276527e98d5a6205e21a908",
+      "page_count": 10,
+      "bytes": 55589,
+      "source": "download_pdfs"
+    },
+    {
+      "filename": "berkshire_2023.pdf",
+      "family": "accounting",
+      "sha256": "829169be21f4ce05202720fe5645cc1b9a5b1ae20bf5e6ebaff987349766eafd",
+      "page_count": 16,
+      "bytes": 122415,
+      "source": "download_pdfs"
+    },
+    {
+      "filename": "Campus hiring 2027_Student brochure.pdf",
+      "family": "career",
+      "sha256": "bf6d80664f27307c994ec6df09db4109a42d4ea391f85fbd2d8bff50251b8060",
+      "page_count": 6,
+      "bytes": 890532,
+      "source": "local"
+    },
+    {
+      "filename": "DevOps_Engineer_Intern.pdf",
+      "family": "career",
+      "sha256": "d87d5d06551a42edeb829094130b29c88478ad4c43041f5d22778c50acc04071",
+      "page_count": 3,
+      "bytes": 156742,
+      "source": "local"
+    },
+    {
+      "filename": "Hyperverge SDE Intern JD.pdf",
+      "family": "career",
+      "sha256": "1862c73cf0fa0a2e7195e9c4633a5fd65c3f828561b28d2114eb163b3292dc0d",
+      "page_count": 2,
+      "bytes": 106563,
+      "source": "local"
+    },
+    {
+      "filename": "New_SDE JD (1) (3) (1).pdf",
+      "family": "career",
+      "sha256": "15e57e23f44518c985aa7763cf7bc87a0167f80a4e872d03bd3604ff944ea366",
+      "page_count": 3,
+      "bytes": 124703,
+      "source": "local"
+    },
+    {
+      "filename": "Sarvam - Inference Pipeline Assignment.pdf",
+      "family": "career",
+      "sha256": "c81905e50293c395495357c57a03ed5c7fb73175d0bbb4a2ed7f3ff96ffd870a",
+      "page_count": 19,
+      "bytes": 902341,
+      "source": "local"
+    },
+    {
+      "filename": "Sarvam Inference Pipeline Assignment.pdf",
+      "family": "career",
+      "sha256": "ab7df15db1d84a63e5a863ad4688cf22975427827532805cba322082ef0e3892",
+      "page_count": 7,
+      "bytes": 222930,
+      "source": "local"
+    },
+    {
+      "filename": "Sprinklr JD - Cloud Engg -Campus Hiring.pdf",
+      "family": "career",
+      "sha256": "ceb335d9884f2fcb0136a34387d249c086e34370e50eeaf41444cba698038dea",
+      "page_count": 3,
+      "bytes": 271374,
+      "source": "local"
+    }
+  ]
+}
