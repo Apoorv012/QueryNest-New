@@ -1,7 +1,7 @@
 // Talks only to the lite public backend (core.api.public_main) — it exposes
-// exactly GET /documents, GET /documents/{id}/pdf, POST /search, GET /health,
-// all scoped to the golden demo corpus server-side. There is no user_id to
-// pass and no upload/seed/edit endpoint to call.
+// exactly GET /documents, GET /documents/{id}/pdf, POST /search,
+// GET /check-backend, all scoped to the golden demo corpus server-side.
+// There is no user_id to pass and no upload/seed/edit endpoint to call.
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api';
 
 export interface DocumentInfo {
@@ -72,9 +72,13 @@ export function getPdfDownloadUrl(docId: string): string {
   return `${API_BASE}/documents/${docId}/pdf?download=true`;
 }
 
-export async function checkHealth(): Promise<boolean> {
+// Not /health: ad-blockers (Brave Shields included) commonly filter that
+// exact path as a tracking ping, failing the request before it ever leaves
+// the browser. /check-backend is the same static payload under a name
+// nothing filters.
+export async function checkBackend(): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE}/health`);
+    const res = await fetch(`${API_BASE}/check-backend`);
     const data = await res.json();
     return data.status === 'ok';
   } catch {

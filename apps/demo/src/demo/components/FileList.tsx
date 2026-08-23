@@ -10,7 +10,7 @@ export function FileList({ documents }: Props) {
     <div className="w-64 border-r bg-gray-50 p-4 flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold text-sm">Files ({documents.length})</h2>
-        <Disabled message="Read-only demo — upload disabled">
+        <Disabled message="Read-only demo — upload disabled" direction="down">
           <button className="bg-blue-600 text-white text-xs px-3 py-1 rounded">
             + Upload
           </button>

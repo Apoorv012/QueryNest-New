@@ -3,7 +3,7 @@ import { FileList } from './components/FileList';
 import { SearchBar } from './components/SearchBar';
 import { SearchResults } from './components/SearchResults';
 import { Disabled } from './components/Disabled';
-import { listDocuments, search, checkHealth } from './lib/api';
+import { listDocuments, search, checkBackend } from './lib/api';
 import type { DocumentInfo, SearchResponse } from './lib/api';
 
 function App() {
@@ -11,13 +11,6 @@ function App() {
   const [searchResult, setSearchResult] = useState<SearchResponse | null>(null);
   const [searching, setSearching] = useState(false);
   const [online, setOnline] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const check = async () => setOnline(await checkHealth());
-    check();
-    const id = setInterval(check, 10000);
-    return () => clearInterval(id);
-  }, []);
 
   const refreshDocs = useCallback(async () => {
     try {
@@ -31,11 +24,38 @@ function App() {
     refreshDocs();
   }, [refreshDocs]);
 
+  useEffect(() => {
+    // /check-backend, not /health: ad-blockers (Brave Shields included)
+    // filter generic paths like /health, /ping, /beacon as tracking pings,
+    // silently failing the request client-side with zero bytes transferred
+    // — the API was never actually reached, so it looked "down" to a
+    // browser that had never sent the request. See lib/api.ts.
+    //
+    // A cold Render instance can also 502 the first request or two while it
+    // spins up, so two consecutive failures are required before flipping to
+    // "offline" — a single success always clears it immediately.
+    let consecutiveFailures = 0;
+    const check = async () => {
+      const ok = await checkBackend();
+      if (ok) {
+        consecutiveFailures = 0;
+        setOnline(true);
+      } else {
+        consecutiveFailures += 1;
+        if (consecutiveFailures >= 2) setOnline(false);
+      }
+    };
+    check();
+    const id = setInterval(check, 15000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleSearch = async (query: string, dateFrom: string | null, dateTo: string | null) => {
     setSearching(true);
     try {
       const result = await search(query, { dateFrom: dateFrom ?? undefined, dateTo: dateTo ?? undefined });
       setSearchResult(result);
+      setOnline(true);
     } catch {
       setSearchResult(null);
     }
@@ -62,7 +82,7 @@ function App() {
             <span className={`w-2 h-2 rounded-full ${online === null ? 'bg-gray-300' : online ? 'bg-green-500' : 'bg-red-500'}`} />
             {online === null ? 'checking...' : online ? 'online' : 'offline'}
           </span>
-          <Disabled message="Read-only demo — reseeding is admin-only">
+          <Disabled message="Read-only demo — reseeding is admin-only" direction="down">
             <button className="bg-amber-600 text-white text-xs px-3 py-1 rounded">
               Seed Golden Set
             </button>
