@@ -313,3 +313,78 @@ Supersedes the schema shown in earlier drafts of `docs/ARCHITECTURE.md`, where `
 
 **Risk:** the UI must render the tier boundaries visibly. Silently mixing tiers would make the
 date filter feel broken — which is the same failure D8 warned about, now with three groups.
+
+---
+
+## D15: Public Demo Backend Is a Separate App, Not an Auth Flag
+
+**Decision:** The internet-facing demo (`querynest.apoorvm.com`) is served by `core/api/public_main.py`,
+a second, independent `FastAPI()` instance that mounts only three routers — `health`,
+`public_search`, `public_documents`. It is not `core/api/main.py` with a "public mode" flag that
+disables routes at runtime.
+
+**Why:** A flag-based lockdown means every future route added to the full backend is public by
+default unless someone remembers to gate it — the failure mode is silent and grows over time. A
+separate app that simply never imports `upload.py` or `eval.py` cannot serve them regardless of
+what changes elsewhere; there is no flag to forget. `public_search.py`'s `/search` also accepts no
+`user_id` field from the client at all (rather than accepting one and validating it equals
+`golden_user`), for the same reason — the golden-only behavior is structural, not a checked
+invariant.
+
+**Alternatives considered:**
+- Add an admin-key header requirement to the existing app's write routes, deploy that app
+  publicly: considered and initially built, then reverted — it still means the full ingest/eval
+  code path is reachable from the internet (just behind a header check), and every new sensitive
+  route added later needs the same header dependency remembered and applied correctly.
+- Feature-flag routes at include-time (`if public_mode: skip upload_router`): closer to the chosen
+  design, but still one shared codebase with a runtime branch, versus two entrypoints where the
+  absence of imports is the guarantee.
+
+**Consequence:** the full backend (`main.py`) and `tools/dev-dashboard` are never deployed at all
+— they run locally against the same Supabase project for ingest, eval-seeding, and admin
+inspection. Reseeding the public demo corpus means running `/eval/seed` locally, not against the
+deployed API.
+
+**Risk:** two FastAPI apps means some route logic (e.g. the tiered date-filtered search in
+`search.py`) is duplicated rather than shared, since `public_search.py` reuses `search.py`'s
+`_first_per_document`/`OVERFETCH_FACTOR` helpers by import but reimplements the route body. Judged
+acceptable at this scale — the alternative (a shared route function parameterized by
+auth-vs-public) would reintroduce the flag-based coupling this decision exists to avoid.
+
+---
+
+## D16: PDF Storage Gets the Same Local/Hosted Split as the Vector Store
+
+**Decision:** `core/storage/` defines a `FileStore` ABC (`save`, `get`, `delete`, `delete_all`)
+with `LocalFileStore` (disk, `data/uploads/`) and `SupabaseFileStore` (Supabase Storage REST API)
+implementations, picked by `get_file_store()` off the same `QUERYNEST_STORAGE_MODE` env var
+`core/index/config.py` already uses for the database. `upload.py` and `documents.py` now call
+`file_store.save(...)`/`.get(...)` instead of `Path.write_bytes()`/`FileResponse(pdf_path)`
+directly.
+
+**Why:** PDFs were written straight to local disk regardless of `QUERYNEST_STORAGE_MODE`, which
+works for local development but not for a backend deployed to Render — Render's filesystem is
+ephemeral, so anything written to disk disappears on the next deploy or restart. The public demo
+needs the PDF bytes to persist independently of the container. Mirroring the existing
+`VectorStore` split (one interface, one local implementation, one hosted implementation, same
+config switch) keeps the two storage concerns consistent rather than inventing a second pattern.
+
+`SupabaseFileStore` calls the Storage REST API directly via `requests` (already a dependency)
+rather than adding the `supabase-py` SDK — the surface needed is three calls (upload, sign-url,
+delete), which doesn't justify a new dependency.
+
+**Alternatives considered:**
+- S3 (or S3-compatible) storage via `boto3`: viable, but adds a new dependency and a second cloud
+  account to manage, when the project already runs entirely on Supabase (Postgres + Storage in one
+  project, one set of credentials).
+- Keep local disk and give the Render container a persistent volume: Render's free tier doesn't
+  offer one; even on a paid tier, this ties the demo's data to a specific container instance
+  rather than the same Supabase project the local admin backend already writes to.
+
+**Risk:** `SupabaseFileStore.get()` returns a signed URL (`str`) while `LocalFileStore.get()`
+returns raw bytes — the two branches of the ABC's return type are genuinely different shapes, so
+every caller (`documents.py`, `public_documents.py`) must branch on `isinstance(result, str)`
+rather than treating the interface as fully uniform. Judged acceptable: forcing local mode to
+also return a URL (e.g. a `file://` path or a local static-file route) would add complexity to the
+common local-dev path to preserve a uniformity the caller-side branch already handles cleanly in
+two lines.

@@ -106,6 +106,19 @@ document ranks below a lower-scoring in-range one. See D12 in `docs/decisions.md
 rationale (undated documents rank above known-wrong ones because "unknown" and "known wrong" are
 different confidence levels, not the same non-match).
 
+### Stage 4b: File Storage
+
+**Module**: `core/storage/`
+
+Persists uploaded PDF bytes, independent of the vector store, with the same local/hosted split:
+
+- `base.py`: `FileStore` ABC — `save(user_id, doc_id, data)`, `get(user_id, doc_id) -> bytes | str` (raw bytes locally, a signed URL when hosted), `delete(user_id, doc_id)`, `delete_all(user_id)`.
+- `local.py`: `LocalFileStore` — writes to `data/uploads/{user_id}/{doc_id}.pdf`, same layout the API used before this abstraction existed.
+- `supabase.py`: `SupabaseFileStore` — calls the Supabase Storage REST API directly via `requests` (upload, generate a signed URL, delete/list-and-delete for `delete_all`). No `supabase-py` SDK dependency.
+- `config.py`: `get_file_store()` — cached singleton, picks the implementation off `QUERYNEST_STORAGE_MODE` (same env var `core/index/config.py` uses for the database, so the two storage layers always agree on local vs. hosted).
+
+**Why it exists**: `core/api/routes/upload.py` and `documents.py` used to call `Path.write_bytes()`/`FileResponse` directly, which works locally but not on Render, whose filesystem is ephemeral. See D16 in `docs/decisions.md`.
+
 ### Stage 5: Query Parsing
 
 **Module**: `core/query/parser.py`
@@ -254,17 +267,39 @@ Golden-query-set retrieval evaluation. See `docs/evaluation.md` for full methodo
 `golden_paraphrased.json` (the same queries reworded, used to check whether retrieval quality
 holds up under phrasing variation rather than being tuned to one exact wording).
 
-### core/api/ (Dev Only)
+### core/api/ — Full Backend (`main.py`, Local Admin Only, Never Deployed)
 
 - `main.py`: FastAPI app; CORS for `localhost:5173`; lifespan hook calls `store.setup()` when `QUERYNEST_DATABASE_URL` is set, otherwise runs in-memory-only.
 - `routes/`: route modules, assembled in `routes/__init__.py` as `api_router`.
-  - `health.py`: `GET /`, `GET /health`
-  - `upload.py`: `POST /upload/bulk` (background bulk upload — hashes each file and short-circuits to the existing document on a content-hash match (D14); otherwise extracts, chunks, date-detects, and, when a database is configured, embeds and stores the file), `GET /upload/{job_id}/status` (per-file job progress, including `was_duplicate`)
-  - `documents.py`: `GET /documents`, `GET /documents/{doc_id}/chunks`, `PATCH /documents/{doc_id}/date`, `GET /documents/{doc_id}/pdf`
+  - `health.py`: `GET /`, `GET /health`, `GET /check-backend` (identical payload to `/health`, under a name ad-blockers don't filter — see the public API section below).
+  - `upload.py`: `POST /upload/bulk` (background bulk upload — hashes each file and short-circuits to the existing document on a content-hash match (D14); otherwise extracts, chunks, date-detects, and, when a database is configured, embeds and stores the file via `core/storage`), `GET /upload/{job_id}/status` (per-file job progress, including `was_duplicate`)
+  - `documents.py`: `GET /documents`, `GET /documents/{doc_id}/chunks`, `PATCH /documents/{doc_id}/date`, `GET /documents/{doc_id}/pdf` (`?download=true` for `Content-Disposition: attachment`)
   - `search.py`: `POST /search` — parses NL date expressions out of the query, embeds the remaining text, and runs a hybrid (semantic + date-filtered) store search
-  - `eval.py`: `POST /eval/seed` (background job that re-indexes the eval fixture PDFs for a dedicated `golden_user`), `GET /eval/seed/{job_id}/status`
+  - `eval.py`: `POST /eval/seed` (background job that re-indexes the eval fixture PDFs for a dedicated `golden_user`, via `core.api.constants.GOLDEN_USER`), `GET /eval/seed/{job_id}/status` — this is how the public demo's corpus is (re)seeded, always run locally against the same Supabase project the public backend reads from.
+- `constants.py`: `GOLDEN_USER = "golden_user"`, shared by `eval.py` and the public routes below.
 - `jobs.py`: Thread-safe in-process `Job`/`FileStatus` tracker for background bulk-upload and eval-seed progress (not persisted, not for production scale).
 - `store.py`: In-memory chunk store used by the chunk-viewer dev tool (separate from the vector store).
+
+### core/api/ — Lite Public Backend (`public_main.py`, Deployed to Render)
+
+A second, independent `FastAPI()` instance — not the app above with routes disabled. It imports
+only three routers, so upload/eval/mutation are structurally absent, not merely unauthenticated.
+See D15 in `docs/decisions.md`.
+
+- `public_main.py`: own lifespan (just `store.setup()`), CORS restricted to `QUERYNEST_DEMO_ORIGIN` (comma-separated, no `localhost`, no wildcard).
+- `routes/public_search.py`: `POST /search` — request body has no `user_id` field at all; always searches `GOLDEN_USER` server-side. Reuses `search.py`'s `_first_per_document`/`OVERFETCH_FACTOR` tiered-search logic by import. Wrapped in a small in-memory fixed-window IP rate limiter, since this route is fully public with zero auth.
+- `routes/public_documents.py`: `GET /documents` (read-only golden-corpus listing, no `user_id` param), `GET /documents/{doc_id}/pdf` (read-only, `GOLDEN_USER`-scoped, `?download=true` supported).
+- `routes/health.py`'s `GET /health` and `GET /check-backend` are shared with the full backend (same file, same router).
+
+### apps/demo/ — Public Frontend (Deployed to Vercel)
+
+React + TypeScript + Vite, cloned from `tools/dev-dashboard`'s component structure rather than
+built fresh, then adapted for public consumption:
+
+- Two static pages via Vite's native multi-page build (no router dependency): `index.html` (landing/marketing) and `demo/index.html`, served at the `/demo/` route.
+- `src/demo/App.tsx` + `components/`: same look as the dev dashboard, but mutation controls (Upload, Seed Golden Set) are rendered `disabled` with a hover tooltip (`components/Disabled.tsx`, `direction="down"` for controls near the top of the page/a clipping ancestor) rather than removed — the demo should look and feel like the real tool, just read-only. The user selector is a locked `golden_user` label, not an editable input.
+- `src/demo/lib/api.ts`: talks only to the lite public backend's four routes. `checkBackend()` hits `/check-backend`, not `/health` — ad-blockers (Brave Shields included) commonly filter generic paths like `/health`/`/ping`/`/beacon` as tracking pings, silently failing the request client-side with zero bytes ever sent, which otherwise shows as a false "offline" indicator even though the API is reachable.
+- `VITE_API_BASE` env var (build-time) points at the Render backend URL.
 
 ### tools/chunk-viewer/ (Dev Only)
 
@@ -274,7 +309,41 @@ React + TypeScript + Vite app for inspecting extraction output. Shows chunk list
 
 ## Production Architecture
 
-### Platform Strategy
+### Current Deployment (Live)
+
+```
+                    ┌─────────────────────┐
+                    │  querynest.apoorvm.com │  (Vercel, CNAME)
+                    │  apps/demo — landing + /demo/
+                    └──────────┬──────────┘
+                               │ VITE_API_BASE
+                               ▼
+                    ┌─────────────────────┐
+  GitHub Actions ──▶│ querynest-public-api.onrender.com │
+  (ping /health,    │ core/api/public_main.py            │
+   every 10 min)    │ health + public_search + public_documents │
+                    └──────────┬──────────┘
+                               │ pooler connection (IPv4)
+                               ▼
+                    ┌─────────────────────┐
+                    │   Supabase project    │
+                    │   Postgres (pgvector) │
+                    │   Storage (pdfs bucket)│
+                    └─────────────────────┘
+                               ▲
+                               │ /eval/seed (admin, local only)
+                    ┌─────────────────────┐
+                    │  core/api/main.py    │  ← runs on your machine,
+                    │  + tools/dev-dashboard │    never deployed
+                    └─────────────────────┘
+```
+
+- **Frontend**: Vercel, `apps/demo` as root directory, `render.yaml`-free (Vercel auto-detects Vite). Custom domain `querynest.apoorvm.com` via CNAME to `cname.vercel-dns.com`.
+- **Backend**: Render, Dockerfile-based web service, config in `render.yaml` at repo root. Free tier spins down after ~15 min idle; `.github/workflows/keepalive.yml` pings `/health` every 10 minutes to prevent that (best-effort, not a hard guarantee — GitHub's cron scheduler isn't exact).
+- **Database connection gotcha**: Supabase's direct `db.<ref>.supabase.co` host is IPv6-only. Docker Desktop (and Render, and most PaaS) have no IPv6 route by default, so `QUERYNEST_DATABASE_URL` in any deployed/containerized context **must** be the connection **pooler** string (`aws-0-<region>.pooler.supabase.com:6543`), not the direct host — confirmed by reproducing `Network is unreachable` locally in Docker before it would have surfaced in production.
+- **The golden corpus lives only in Supabase now** — DB rows and PDF files both. Re-seeding (`POST /eval/seed`, run locally against the full backend) wipes and rewrites both `documents`/`chunks` tables and the `pdfs` Storage bucket for `golden_user`; it never touches other users' data.
+
+### Platform Strategy (Future Scope — Desktop/Mobile)
 
 | Platform | Account | Processing | Offline | Backend |
 |---|---|---|---|---|
