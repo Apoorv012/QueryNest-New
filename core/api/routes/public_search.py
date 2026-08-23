@@ -9,7 +9,11 @@ from pydantic import BaseModel
 
 from core.api.constants import GOLDEN_USER
 from core.api.routes.search import OVERFETCH_FACTOR, _first_per_document
-from core.index.base import DATE_MATCH_IN_RANGE, DATE_MATCH_OUT_OF_RANGE, DATE_MATCH_UNDATED
+from core.index.base import (
+    DATE_MATCH_IN_RANGE,
+    DATE_MATCH_OUT_OF_RANGE,
+    DATE_MATCH_UNDATED,
+)
 from core.index.config import is_store_configured
 
 router = APIRouter()

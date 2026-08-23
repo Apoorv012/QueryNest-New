@@ -7,7 +7,9 @@ from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel
 
 from core.api.deps import validate_user_id
-from core.storage.local import UPLOAD_DIR  # noqa: F401 - re-exported for tests/api/test_api.py
+from core.storage.local import (
+    UPLOAD_DIR,  # noqa: F401 - re-exported for tests/api/test_api.py
+)
 
 router = APIRouter()
 
