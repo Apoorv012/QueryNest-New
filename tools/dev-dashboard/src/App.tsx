@@ -3,7 +3,7 @@ import { UserSelector } from './components/UserSelector';
 import { FileList } from './components/FileList';
 import { SearchBar } from './components/SearchBar';
 import { SearchResults } from './components/SearchResults';
-import { listDocuments, search, seedGoldenSet, getSeedStatus, checkHealth } from './lib/api';
+import { listDocuments, search, seedGoldenSet, getJobStatus, checkHealth } from './lib/api';
 import type { DocumentInfo, SearchResponse } from './lib/api';
 
 function App() {
@@ -59,7 +59,7 @@ function App() {
       const jobId = result.job_id;
 
       const poll = async () => {
-        const status = await getSeedStatus(jobId);
+        const status = await getJobStatus(jobId);
         setSeedProgress(`${status.completed}/${status.total} indexed`);
         if (status.status === 'processing') {
           setTimeout(poll, 2000);
@@ -109,7 +109,7 @@ function App() {
             <SearchBar onSearch={handleSearch} loading={searching} />
           </div>
           <div className="flex-1 overflow-y-auto p-4">
-            <SearchResults result={searchResult} />
+            <SearchResults result={searchResult} userId={userId} />
           </div>
         </div>
       </div>

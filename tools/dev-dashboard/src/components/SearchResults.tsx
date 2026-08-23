@@ -1,7 +1,9 @@
 import type { DateMatch, SearchResponse } from '../lib/api';
+import { getPdfUrl } from '../lib/api';
 
 interface Props {
   result: SearchResponse | null;
+  userId: string;
 }
 
 // D12: three confidence tiers, in the order results already arrive in.
@@ -13,7 +15,7 @@ const TIER_HEADINGS: Partial<Record<DateMatch, string>> = {
   out_of_range: 'Outside the requested date range',
 };
 
-export function SearchResults({ result }: Props) {
+export function SearchResults({ result, userId }: Props) {
   if (!result) {
     return (
       <div className="text-gray-400 text-sm text-center mt-16">
@@ -65,7 +67,21 @@ export function SearchResults({ result }: Props) {
                 {TIER_HEADINGS[r.date_match]}
               </div>
             )}
-            <div className="border rounded p-3 hover:bg-gray-50">
+            <div
+              role="button"
+              tabIndex={0}
+              title={`Open ${r.filename} at page ${r.page + 1}`}
+              onClick={() =>
+                window.open(`${getPdfUrl(r.document_id, userId)}#page=${r.page + 1}`, '_blank')
+              }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  window.open(`${getPdfUrl(r.document_id, userId)}#page=${r.page + 1}`, '_blank');
+                }
+              }}
+              className="border rounded p-3 hover:bg-gray-50 cursor-pointer"
+            >
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded">
                   #{i + 1}
@@ -80,7 +96,8 @@ export function SearchResults({ result }: Props) {
                 )}
               </div>
               <div className="text-xs text-gray-400 mb-1">
-                Page {r.page + 1}
+                {r.filename && <span className="text-gray-600">{r.filename}</span>}
+                <span> · Page {r.page + 1}</span>
                 {r.document_date && <span> · {r.document_date}</span>}
               </div>
               <div className="text-sm text-gray-700 leading-relaxed">

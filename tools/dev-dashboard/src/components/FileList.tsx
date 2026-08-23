@@ -110,8 +110,14 @@ export function FileList({ userId, documents, onRefresh }: Props) {
               {job.files.map((f) => (
                 <li key={f.filename} className="flex justify-between gap-2">
                   <span className="truncate" title={f.filename}>{f.filename}</span>
-                  <span className={f.status === 'error' ? 'text-red-500' : 'text-gray-400'}>
-                    {f.status === 'error' ? 'failed' : formatMs(f.processing_ms)}
+                  <span className={
+                    f.status === 'error' ? 'text-red-500'
+                    : f.was_duplicate ? 'text-amber-600'
+                    : 'text-gray-400'
+                  }>
+                    {f.status === 'error' ? 'failed'
+                      : f.was_duplicate ? 'already exists'
+                      : formatMs(f.processing_ms)}
                   </span>
                 </li>
               ))}

@@ -15,8 +15,9 @@ class FileStatus:
     error: str | None = None
     processing_ms: float | None = None
     # True when this file was already present (same bytes, same user) and was
-    # not re-processed. Still a success — but the UI should say so rather than
-    # implying work happened.
+    # not re-processed: no new document is created, so it never shows up as a
+    # new row. Reported as status="done" (nothing failed), but the dashboard
+    # renders it as "already exists" rather than a normal processing time.
     was_duplicate: bool = False
 
 

@@ -16,16 +16,20 @@ from .routes import api_router
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    db_url = os.environ.get("QUERYNEST_DATABASE_URL")
-    mode = os.environ.get("QUERYNEST_STORAGE_MODE", "supabase")
+    from core.index.config import get_storage_mode, is_store_configured
 
-    if db_url:
+    mode = get_storage_mode()
+
+    if is_store_configured():
         from core.index import get_vector_store
 
         store = get_vector_store()
         store.setup()
 
-        host = db_url.split("@")[-1].split("/")[0] if "@" in db_url else "unknown"
+        db_url = os.environ.get(
+            "QUERYNEST_LOCAL_DATABASE_URL" if mode == "local" else "QUERYNEST_DATABASE_URL"
+        )
+        host = db_url.split("@")[-1].split("/")[0] if db_url and "@" in db_url else "unknown"
         print("\n  QueryNest API  —  http://localhost:8000")
         print(f"  Storage:       pgvector ({mode}) @ {host}\n")
     else:

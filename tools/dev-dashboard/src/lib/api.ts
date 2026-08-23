@@ -15,6 +15,7 @@ export interface FileStatus {
   date_source: string | null;
   error: string | null;
   processing_ms: number | null;
+  was_duplicate: boolean;
 }
 
 export interface JobStatus {
@@ -38,6 +39,7 @@ export type DateMatch = 'in_range' | 'undated' | 'out_of_range' | 'unfiltered';
 export interface SearchResult {
   chunk_id: number;
   document_id: string;
+  filename: string;
   text: string;
   heading: string;
   score: number;
@@ -118,11 +120,6 @@ export function getPdfUrl(docId: string, userId: string): string {
 
 export async function seedGoldenSet(): Promise<{ job_id: string; total: number }> {
   const res = await fetch(`${API_BASE}/eval/seed`, { method: 'POST' });
-  return res.json();
-}
-
-export async function getSeedStatus(jobId: string): Promise<JobStatus> {
-  const res = await fetch(`${API_BASE}/eval/seed/${jobId}/status`);
   return res.json();
 }
 

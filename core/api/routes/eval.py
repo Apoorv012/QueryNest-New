@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks
 
-from core.api.jobs import Job, create_job, get_job, update_file_status
+from core.api.jobs import Job, create_job
+from core.api.routes.upload import UPLOAD_DIR, _process_file
 
 router = APIRouter()
 
@@ -30,69 +30,27 @@ def _eval_pdf_paths() -> list[Path]:
 
 
 def _seed_worker(job: Job) -> None:
-    from core.chunking.chunker import chunk_document
-    from core.embedding import FastEmbedEmbedder
     from core.index import get_vector_store
-    from core.ingest.date_extractor import extract_date
-    from core.ingest.extractor import extract
 
     store = get_vector_store()
-    embedder = FastEmbedEmbedder.get_instance()
-
     store.delete_all_for_user(GOLDEN_USER)
 
-    pdf_files = _eval_pdf_paths()
+    # _process_file only ever adds files under new doc_ids; a reseed must
+    # clear yesterday's PDFs itself or they'd pile up as orphans no row
+    # references.
+    pdf_dir = UPLOAD_DIR / GOLDEN_USER
+    if pdf_dir.is_dir():
+        for stale_pdf in pdf_dir.glob("*.pdf"):
+            stale_pdf.unlink()
 
-    for i, pdf_path in enumerate(pdf_files):
-        filename = pdf_path.name
-        try:
-            doc = extract(str(pdf_path))
-            chunks = chunk_document(doc)
-            if not chunks:
-                update_file_status(job.job_id, i, status="error", error="No chunks produced")
-                continue
-
-            doc_id = uuid.uuid4().hex[:12]
-
-            first_page_text = "\n".join(
-                b.text for b in doc.pages[0].blocks[:10]
-            ) if doc.pages else None
-            detected_date, date_source = extract_date(
-                filename, first_page_text=first_page_text
-            )
-
-            texts = [c.text for c in chunks]
-            embeddings = embedder.embed(texts)
-
-            source_blocks_data = [
-                [
-                    {"text": b.text, "page": b.page, "bbox": list(b.bbox), "type": b.type}
-                    for b in c.source_blocks
-                ]
-                for c in chunks
-            ]
-
-            store.store_chunks(
-                document_id=doc_id,
-                user_id=GOLDEN_USER,
-                filename=filename,
-                texts=texts,
-                embeddings=embeddings,
-                headings=[c.heading for c in chunks],
-                pages=[c.source_blocks[0].page if c.source_blocks else 0 for c in chunks],
-                chunk_indices=[c.chunk_index for c in chunks],
-                document_date=detected_date,
-                source_blocks=source_blocks_data,
-            )
-
-            update_file_status(
-                job.job_id, i, status="done",
-                document_id=doc_id,
-                detected_date=detected_date.isoformat() if detected_date else None,
-                date_source=date_source,
-            )
-        except (RuntimeError, OSError, ValueError) as e:
-            update_file_status(job.job_id, i, status="error", error=str(e))
+    # Golden-set seeding is ingest for a fixed corpus instead of an upload
+    # request, so it drives the exact same per-file pipeline the real
+    # `/upload/bulk` route uses — dedup hash, PDF storage, embedding,
+    # indexing, rollback-on-failure, ingest metrics — rather than a second
+    # copy that silently drifts from it (see git history: it used to skip
+    # content_hash/page_count and never wrote the PDF to disk at all).
+    for i, pdf_path in enumerate(_eval_pdf_paths()):
+        _process_file(job.job_id, i, pdf_path.read_bytes(), pdf_path.name, GOLDEN_USER)
 
 
 @router.post("/eval/seed")
@@ -112,30 +70,4 @@ def seed_golden_set(background_tasks: BackgroundTasks):
         "user_id": GOLDEN_USER,
         "total": len(pdf_files),
         "message": "Seeding golden set in background",
-    }
-
-
-@router.get("/eval/seed/{job_id}/status")
-def seed_status(job_id: str):
-    job = get_job(job_id)
-    if job is None:
-        return {"error": "Job not found"}
-
-    return {
-        "job_id": job.job_id,
-        "user_id": job.user_id,
-        "status": job.status,
-        "total": job.total,
-        "completed": job.completed,
-        "failed": job.failed,
-        "files": [
-            {
-                "filename": f.filename,
-                "status": f.status,
-                "document_id": f.document_id,
-                "detected_date": f.detected_date,
-                "error": f.error,
-            }
-            for f in job.files
-        ],
     }
