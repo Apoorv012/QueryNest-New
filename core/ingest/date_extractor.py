@@ -33,10 +33,10 @@ def extract_date_from_metadata(metadata: dict) -> date | None:
 
 def extract_date_from_text(text: str) -> date | None:
     patterns = [
-        r"(?:published|dated?|issued|copyright)\s*(?:in|on|:)?\s*(\w+\s+\d{1,2},?\s*\d{4})",
-        r"(?:published|dated?|issued|copyright)\s*(?:in|on|:)?\s*(\d{1,2}\s+\w+\s+\d{4})",
-        r"(?:published|dated?|issued|copyright)\s*(?:in|on|:)?\s*(\w+\s+\d{4})",
-        r"(?:published|dated?|issued|copyright)\s*(?:in|on|:)?\s*(\d{4})",
+        r"(?:published|dated?|issued|copyright)\s*(?:in|on|of|:)?\s*(\w+\s+\d{1,2},?\s*\d{4})",
+        r"(?:published|dated?|issued|copyright)\s*(?:in|on|of|:)?\s*(\d{1,2}\s+\w+\s+\d{4})",
+        r"(?:published|dated?|issued|copyright)\s*(?:in|on|of|:)?\s*(\w+\s+\d{4})",
+        r"(?:published|dated?|issued|copyright)\s*(?:in|on|of|:)?\s*(\d{4})",
         r"\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b",
         r"\b\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b",
     ]
