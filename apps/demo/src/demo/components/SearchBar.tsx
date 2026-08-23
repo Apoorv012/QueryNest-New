@@ -21,7 +21,7 @@ export function SearchBar({ onSearch, loading }: Props) {
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search... (try 'transformer last 3 years' or 'deadlock in 2024')"
+        placeholder="Search... (try 'what is rag' or 'berkshire report of 2023')"
         className="flex-1 border rounded px-3 py-2 text-sm"
       />
       <input
