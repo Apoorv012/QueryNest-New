@@ -242,5 +242,74 @@ without de-duplication. Each tier requests only the shortfall (`top_k - len(resu
 later tiers are skipped entirely once `top_k` is met. The route stamps `date_match` itself
 rather than trusting the store, so the label cannot drift per implementation.
 
+## D13: Drop Unusably Tiny Chunks at Ingest
+
+**Decision:** After chunking, discard any chunk whose estimated token count falls below
+`DROP_BELOW_TOKENS = 20` (`core/chunking/chunker.py`). If every chunk in a document is below
+the threshold, the document is kept unfiltered rather than emptied.
+
+**Why:** a `section-header` block flushes the current chunk and then becomes the first block of
+the next one, so two consecutive headings emit a chunk whose entire content is the first
+heading — `"4 Results"`, `"E Additional Details"`, `"APPENDIX"`. At 2-3 tokens these embed to a
+vague near-centroid vector sitting at middling distance from *every* query, so they surfaced as
+plausible-looking noise: measured ranks 3 and 6 for the query "job descriptions", ahead of three
+actual job descriptions, from an AI paper and a RAG paper whose section headers happened to
+collide with the query's vocabulary.
+
+**Alternatives considered:**
+- *Merge into a neighbouring chunk instead of dropping:* tried first, but folding a tiny chunk
+  into its neighbour also moved that neighbour's boundaries, which cost document-level recall
+  on chunks that were fine on their own. Dropping touches only the unusable chunk.
+- *Filter at query time instead of ingest time:* rejected — a chunk that can never be a useful
+  result shouldn't occupy an index slot, an HNSW graph node, and a per-result check forever.
+- *Raise MIN_TOKENS instead of adding a second threshold:* `MIN_TOKENS = 120` governs when the
+  *chunker* flushes early to avoid a tiny chunk mid-document; it doesn't apply to the trailing
+  chunk after the last heading, which is where this failure mode actually occurs. The two
+  thresholds serve different points in the pipeline and are deliberately kept separate.
+
+**Risk:** the dropped chunk's text isn't lost — it's already stored separately as the *next*
+chunk's `Chunk.heading` — so this is a pure precision gain with no coverage cost, confirmed by
+eval (nothing regressed; see `docs/plan.md` §6).
+
+## D14: Normalize Per-Document Metadata into a `documents` Table; Add Content-Hash Dedup
+
+**Decision:** Split `chunks` into two tables. `documents` (one row per document: `document_id`
+PK, `user_id`, `filename`, `document_date`, `content_hash`, `page_count`, `chunk_count`) now
+owns everything that used to be repeated on every chunk row; `chunks` keeps only per-chunk data
+(`document_id` FK, `chunk_index`, `text`, `heading`, `embedding`, `page`, `source_blocks`).
+`documents (user_id, content_hash)` carries a partial unique index (`WHERE content_hash IS NOT
+NULL`), and `POST /upload/bulk` SHA-256-hashes each upload before extraction, short-circuiting
+to the existing `document_id` on a match instead of re-extracting, re-chunking, and re-embedding.
+
+**Why:** `filename`, `user_id`, and `document_date` were duplicated on every chunk row, so
+re-dating a document meant rewriting all of its chunks, and there was nowhere to hang
+document-level metadata like a content hash without duplicating it across every row too.
+Extraction is ~77% of ingest cost at roughly 1,790 ms/page, so deduplicating on content hash is
+the highest-leverage remaining performance win in the ingest path: it removes work rather than
+rearranging it (the same reasoning that ruled out ingest parallelism — see `docs/plan.md` §3).
+
+**Migration is the risky part, so it's written as an explicit, re-runnable step
+(`_migrate_document_metadata` in `core/index/pgvector.py`), run from `setup()` but distinct from
+its `ADD COLUMN IF NOT EXISTS` calls.** It backfills `documents` from `SELECT ... GROUP BY
+document_id` over the existing `chunks` rows — `MIN()` over each column, since a document's rows
+all share the same metadata — and only *then* drops the now-duplicated columns off `chunks`.
+`ADD COLUMN IF NOT EXISTS` is safely idempotent; a column *drop* is not, so getting the ordering
+wrong risks losing metadata irrecoverably. The migration checks for the old `chunks.user_id`
+column first and is a no-op once it's gone.
+
+**Content_hash is nullable, and the unique index is partial**, because documents ingested before
+this change has no hash and fabricating one would be worse than admitting it. Every new ingest
+sets it, so dedup holds going forward without requiring a backfill of historical rows.
+
+**Consequence:** any query needing `user_id` (e.g. the BM25 baseline's `WHERE user_id = %s`) now
+joins `chunks` to `documents`. `SearchResult` gained a `filename` field, populated from the join
+so callers don't need a second lookup to display which file a result came from.
+
+**Verified against the existing eval baseline** — the join changes only where `user_id` lives,
+not which rows match, so retrieval metrics were confirmed unchanged before shipping.
+
+Supersedes the schema shown in earlier drafts of `docs/ARCHITECTURE.md`, where `chunks` carried
+`user_id`, `filename`, and `document_date` directly.
+
 **Risk:** the UI must render the tier boundaries visibly. Silently mixing tiers would make the
 date filter feel broken — which is the same failure D8 warned about, now with three groups.

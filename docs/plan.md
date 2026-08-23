@@ -664,7 +664,7 @@ each D12 date tier.
 document's best-matching passage. Phase 4.2 (answer generation) will need several passages per
 document and should fetch them by `document_id` rather than widening this endpoint.
 
-### 6.2 (was 3.2) — Content-hash deduplication  *(do after 4.1)*
+### 6.2 (was 3.2) — Content-hash deduplication  *(SHIPPED, together with 6.4)*
 
 Re-uploading a file reprocesses it from scratch at ~1,790 ms/page. This is the only unambiguous
 win left in Phase 3: it removes work rather than rearranging it, which is why it survived when
@@ -678,6 +678,13 @@ every parallelism idea failed.
   rather than implying work happened.
 - Acceptance: uploading the same PDF twice yields one document, and the second call returns in
   well under a second.
+
+**Shipped as described**, with one deviation: `content_hash` ended up nullable with a *partial*
+unique index (`WHERE content_hash IS NOT NULL`) rather than `NOT NULL`, because documents
+migrated from the pre-6.4 schema have no hash to enforce against — see D14 in
+`docs/decisions.md`. `FileStatus.was_duplicate` on the job-status response is the "already
+present" signal the acceptance criteria asked for. See `core/api/routes/upload.py` and
+`VectorStore.find_by_content_hash`.
 
 ---
 
@@ -709,7 +716,7 @@ was applied and be able to clear it.
 
 ---
 
-### 6.4 (was 4.1) — Normalise the `documents` table
+### 6.4 (was 4.1) — Normalise the `documents` table  *(SHIPPED)*
 
 Currently `filename`, `user_id` and `document_date` are repeated on **every chunk row**, so
 re-dating a document rewrites all of its chunks and there is nowhere to hang document-level
@@ -748,6 +755,14 @@ safely idempotent in the same way.
   must be unchanged. Any movement means the join changed retrieval, which would be a bug.
 - Acceptance: `update_document_date` touches exactly one row; metrics identical to the
   pre-migration baseline.
+
+**Shipped** in `core/index/pgvector.py` (`_migrate_document_metadata`, run from `setup()`) and
+`core/index/base.py`. `store_chunks()` now also accepts `content_hash` and `page_count`.
+`search()` gained a `filename` field on `SearchResult`, sourced from the `documents` join, and
+`baselines.py`'s BM25 query now joins `chunks` to `documents` for `user_id`. `LocalPgVectorStore`
+needed no changes — it subclasses `PgVectorStore` and only overrides the connection string, so it
+inherited the new schema, migration, and dedup for free. Full rationale in D14
+(`docs/decisions.md`).
 
 ---
 

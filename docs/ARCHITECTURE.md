@@ -42,7 +42,11 @@ Groups consecutive blocks into semantically coherent chunks:
 
 - **Trigger 1**: Heading boundary (when `section-header` block encountered)
 - **Trigger 2**: Token overflow (MAX_TOKENS = 400)
-- **Minimum**: MIN_TOKENS = 120 (prevents tiny chunks)
+- **Minimum**: MIN_TOKENS = 120 (prevents tiny chunks mid-document)
+- **Post-filter**: chunks below `DROP_BELOW_TOKENS = 20` are discarded after chunking (a
+  heading immediately followed by another heading emits a chunk containing only the first
+  heading's text). If every chunk in a document is below the threshold, the document is kept
+  as-is rather than emptied. See D13 in `docs/decisions.md`.
 - **Token estimation**: `word_count × 1.3` (rough heuristic)
 
 **Input**: `ExtractedDocument`
@@ -66,13 +70,21 @@ Turns chunk text into dense vectors for semantic search:
 
 Persists embedded chunks and serves vector search:
 
-- `base.py`: `VectorStore` ABC defining the storage contract — `setup()`, `store_chunks(...)`, `search(query_embedding, user_id, top_k, date_from, date_to, date_mode) -> list[SearchResult]`, `list_documents(user_id) -> list[DocumentInfo]`, `update_document_date(document_id, user_id, document_date)`, `delete_document(document_id, user_id)`, `delete_all_for_user(user_id) -> int`, `close()`.
-- `pgvector.py`: `PgVectorStore` — Supabase/hosted Postgres implementation.
-- `local.py`: `LocalPgVectorStore` — local Postgres implementation, same schema/interface. Reads its connection string exclusively from `QUERYNEST_LOCAL_DATABASE_URL` (not `QUERYNEST_DATABASE_URL`), so the two storage modes can never accidentally share credentials.
+- `base.py`: `VectorStore` ABC defining the storage contract — `setup()`, `store_chunks(...)`, `find_by_content_hash(user_id, content_hash) -> str | None`, `search(query_embedding, user_id, top_k, date_from, date_to, date_mode) -> list[SearchResult]`, `list_documents(user_id) -> list[DocumentInfo]`, `update_document_date(document_id, user_id, document_date)`, `delete_document(document_id, user_id)`, `delete_all_for_user(user_id) -> int`, `close()`.
+- `pgvector.py`: `PgVectorStore` — Supabase/hosted Postgres implementation. Owns two tables: `documents` (one row per document — `user_id`, `filename`, `document_date`, `content_hash`, `page_count`, `chunk_count`) and `chunks` (one row per chunk — `document_id` FK, `chunk_index`, `text`, `heading`, `embedding`, `page`, `source_blocks`). `setup()` runs an idempotent, re-runnable migration (`_migrate_document_metadata`) that backfills `documents` from any pre-existing `chunks` rows before dropping the now-duplicated `user_id`/`filename`/`document_date` columns off `chunks`. See D14 in `docs/decisions.md`.
+- `local.py`: `LocalPgVectorStore` — local Postgres implementation; subclasses `PgVectorStore` and overrides only the connection string, so it shares the same schema, migration, and dedup logic. Reads its connection string exclusively from `QUERYNEST_LOCAL_DATABASE_URL` (not `QUERYNEST_DATABASE_URL`), so the two storage modes can never accidentally share credentials.
 - `config.py`: `get_vector_store()` returns a cached singleton, picking `LocalPgVectorStore` or `PgVectorStore` based on `QUERYNEST_STORAGE_MODE` (`local` vs. default `supabase`). Also exposes `get_storage_mode() -> str` (reads `QUERYNEST_STORAGE_MODE`, defaulting to `"supabase"`) and `is_store_configured() -> bool`, which checks whether the connection-string variable for the *current* mode is set (`QUERYNEST_LOCAL_DATABASE_URL` for `local`, `QUERYNEST_DATABASE_URL` otherwise) — checking `QUERYNEST_DATABASE_URL` alone would wrongly report "no database" while running in local mode.
 
-**Input**: chunk texts, embeddings, and metadata (headings, pages, chunk indices, document date, source blocks)
+**Input**: chunk texts, embeddings, and metadata (headings, pages, chunk indices, document date, source blocks, content hash, page count)
 **Output**: stored rows; `search()` returns ranked `SearchResult`s, optionally pre-filtered by a `[date_from, date_to]` range on `document_date` and a `date_mode` tier (see D12 below).
+
+**Content-hash dedup (D14).** `POST /upload/bulk` (`core/api/routes/upload.py`) SHA-256-hashes
+each file's bytes before extraction and calls `find_by_content_hash(user_id, content_hash)`.
+On a hit, it short-circuits to the existing `document_id` and reports the file as
+`was_duplicate: true` instead of re-extracting, re-chunking, and re-embedding — extraction is
+~77% of ingest cost, so this removes that work entirely on a re-upload rather than rearranging
+it. `documents (user_id, content_hash)` carries a partial unique index (`WHERE content_hash IS
+NOT NULL`), since documents ingested before hashing existed have no hash to enforce against.
 
 **Date filtering is three-tiered, not a boolean (D12).** `SearchResult` does not carry a
 `within_date_range` flag — it carries `date_match: str`, one of four values defined in
@@ -169,6 +181,7 @@ Index-layer types (`core/index/base.py`), distinct from the ingestion-layer mode
 |---|---|---|
 | `chunk_id` | `int` | Store-assigned chunk id |
 | `document_id` | `str` | Owning document id |
+| `filename` | `str` | Owning document's original filename (joined from `documents`, default `""`) |
 | `text` | `str` | Chunk text |
 | `heading` | `str` | Section heading |
 | `score` | `float` | Similarity score |
@@ -187,6 +200,10 @@ Index-layer types (`core/index/base.py`), distinct from the ingestion-layer mode
 | `document_date` | `date \| None` | Resolved document date |
 | `chunk_count` | `int` | Number of chunks stored for the document |
 
+These are backed by two tables now, not one — see D14. `document_id`, `filename`, `user_id`,
+and `document_date` live on `documents`; `chunk_count` and `page_count` are also tracked there
+(denormalized at write time) so listing documents never needs to scan `chunks`.
+
 ---
 
 ## Module Details
@@ -198,7 +215,7 @@ Index-layer types (`core/index/base.py`), distinct from the ingestion-layer mode
 
 ### core/chunking/
 
-- `chunker.py`: `chunk_document(doc) -> List[Chunk]`. Groups blocks by heading, flushes on boundary or overflow.
+- `chunker.py`: `chunk_document(doc) -> List[Chunk]`. Groups blocks by heading, flushes on boundary or overflow, then drops chunks below `DROP_BELOW_TOKENS` (D13).
 - `tokenizer.py`: `estimate_tokens(text) -> int`. Rough word-count-based estimate.
 
 ### core/embedding/
@@ -209,8 +226,8 @@ Index-layer types (`core/index/base.py`), distinct from the ingestion-layer mode
 ### core/index/
 
 - `base.py`: `VectorStore` ABC, `SourceBlock`, `SearchResult`, `DocumentInfo`.
-- `pgvector.py`: `PgVectorStore` (Supabase/hosted Postgres).
-- `local.py`: `LocalPgVectorStore` (local Postgres, same schema).
+- `pgvector.py`: `PgVectorStore` (Supabase/hosted Postgres); `documents` + `chunks` schema, content-hash dedup, metadata migration (D14).
+- `local.py`: `LocalPgVectorStore` (local Postgres, same schema, inherited from `PgVectorStore`).
 - `config.py`: `get_vector_store()` — picks an implementation from `QUERYNEST_STORAGE_MODE` and caches it.
 
 ### core/query/
@@ -228,7 +245,7 @@ Golden-query-set retrieval evaluation. See `docs/evaluation.md` for full methodo
 
 - `runner.py`: `load_golden(path) -> list[EvalQuery]` parses the golden dataset; `run_search(query_text, top_k)` calls `POST /api/search` on a running API instance (`DEFAULT_API_URL = "http://127.0.0.1:8000"` — use `127.0.0.1`, not `localhost`; on Windows, `localhost` resolves via IPv6 first and adds ~2s of latency per request); `run_eval(golden_path, top_k) -> list[QueryResult]` runs every golden query and computes precision@{5,10}, recall@{5,10}, nDCG@10, and MRR per query; `get_git_commit()` returns the short git hash for tagging reports.
 - `metrics.py`: `precision_at_k`, `recall_at_k`, `ndcg_at_k`, `mrr` — pure functions over retrieved/relevant id lists.
-- `baselines.py`: BM25 keyword baseline (Phase 1.4/D-series) via Postgres full-text search (`to_tsvector`/`ts_rank`/`to_tsquery`) over `chunks.text` — no new dependency, same table the semantic path uses. `bm25_search(query_text, ...)` ranks documents by best per-chunk `ts_rank`; `run_eval_bm25(golden_path, ...)` is the BM25 counterpart to `runner.run_eval`, same scoring, so the two are directly comparable. Query terms are OR-joined (not AND, which returned zero documents for over half the golden queries in testing) and date expressions are stripped via `core.query.parser.parse_query` first, mirroring what the semantic path does before embedding.
+- `baselines.py`: BM25 keyword baseline (Phase 1.4/D-series) via Postgres full-text search (`to_tsvector`/`ts_rank`/`to_tsquery`) over `chunks.text` — no new dependency, same table the semantic path uses. `bm25_search(query_text, ...)` ranks documents by best per-chunk `ts_rank`, joining `chunks` to `documents` for `user_id` (moved off `chunks` by D14); `run_eval_bm25(golden_path, ...)` is the BM25 counterpart to `runner.run_eval`, same scoring, so the two are directly comparable. Query terms are OR-joined (not AND, which returned zero documents for over half the golden queries in testing) and date expressions are stripped via `core.query.parser.parse_query` first, mirroring what the semantic path does before embedding.
 - `report.py`: `print_report(results)` prints a console summary; `generate_report(results, output_dir)` writes a timestamped, git-commit-tagged JSON report (aggregate metrics, by-type breakdown, worst queries by MRR, per-query results) to `reports/`.
 - `download_pdfs.py`: Fetches the fixture PDFs used by the golden dataset into `data/eval/pdfs/<category>/`.
 - `__main__.py`: `python -m core.eval` — runs `run_eval` against `data/eval/golden.json`, prints the report, and saves it to `reports/`.
@@ -242,7 +259,7 @@ holds up under phrasing variation rather than being tuned to one exact wording).
 - `main.py`: FastAPI app; CORS for `localhost:5173`; lifespan hook calls `store.setup()` when `QUERYNEST_DATABASE_URL` is set, otherwise runs in-memory-only.
 - `routes/`: route modules, assembled in `routes/__init__.py` as `api_router`.
   - `health.py`: `GET /`, `GET /health`
-  - `upload.py`: `POST /upload/bulk` (background bulk upload — extracts, chunks, date-detects, and, when a database is configured, embeds and stores each file), `GET /upload/{job_id}/status` (per-file job progress)
+  - `upload.py`: `POST /upload/bulk` (background bulk upload — hashes each file and short-circuits to the existing document on a content-hash match (D14); otherwise extracts, chunks, date-detects, and, when a database is configured, embeds and stores the file), `GET /upload/{job_id}/status` (per-file job progress, including `was_duplicate`)
   - `documents.py`: `GET /documents`, `GET /documents/{doc_id}/chunks`, `PATCH /documents/{doc_id}/date`, `GET /documents/{doc_id}/pdf`
   - `search.py`: `POST /search` — parses NL date expressions out of the query, embeds the remaining text, and runs a hybrid (semantic + date-filtered) store search
   - `eval.py`: `POST /eval/seed` (background job that re-indexes the eval fixture PDFs for a dedicated `golden_user`), `GET /eval/seed/{job_id}/status`
