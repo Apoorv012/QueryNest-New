@@ -9,6 +9,7 @@ data/eval/pdfs/
 tmp/
 reports/
 node_modules/
+dist/
 .claude/worktrees/
 data/eval/candidates/
 data/candidates/

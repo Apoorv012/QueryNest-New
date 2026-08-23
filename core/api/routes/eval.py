@@ -4,15 +4,15 @@ from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks
 
+from core.api.constants import GOLDEN_USER
 from core.api.jobs import Job, create_job
-from core.api.routes.upload import UPLOAD_DIR, _process_file
+from core.api.routes.upload import _process_file
 
 router = APIRouter()
 
 from core.index.config import is_store_configured
 
 _has_pgvector = is_store_configured()
-GOLDEN_USER = "golden_user"
 EVAL_DIR = Path("data/eval/pdfs")
 
 
@@ -31,6 +31,7 @@ def _eval_pdf_paths() -> list[Path]:
 
 def _seed_worker(job: Job) -> None:
     from core.index import get_vector_store
+    from core.storage import get_file_store
 
     store = get_vector_store()
     store.delete_all_for_user(GOLDEN_USER)
@@ -38,10 +39,7 @@ def _seed_worker(job: Job) -> None:
     # _process_file only ever adds files under new doc_ids; a reseed must
     # clear yesterday's PDFs itself or they'd pile up as orphans no row
     # references.
-    pdf_dir = UPLOAD_DIR / GOLDEN_USER
-    if pdf_dir.is_dir():
-        for stale_pdf in pdf_dir.glob("*.pdf"):
-            stale_pdf.unlink()
+    get_file_store().delete_all(GOLDEN_USER)
 
     # Golden-set seeding is ingest for a fixed corpus instead of an upload
     # request, so it drives the exact same per-file pipeline the real

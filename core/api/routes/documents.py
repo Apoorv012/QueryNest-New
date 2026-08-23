@@ -1,21 +1,19 @@
 from __future__ import annotations
 
 from datetime import date
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel
 
 from core.api.deps import validate_user_id
+from core.storage.local import UPLOAD_DIR  # noqa: F401 - re-exported for tests/api/test_api.py
 
 router = APIRouter()
 
 from core.index.config import is_store_configured
 
 _has_pgvector = is_store_configured()
-
-UPLOAD_DIR = Path("data/uploads").resolve()
 
 
 @router.get("/documents")
@@ -96,8 +94,23 @@ def update_document_date(
 
 
 @router.get("/documents/{doc_id}/pdf")
-def get_document_pdf(doc_id: str, user_id: str = Depends(validate_user_id)):
-    pdf_path = (UPLOAD_DIR / user_id / f"{doc_id}.pdf").resolve()
-    if not pdf_path.is_relative_to(UPLOAD_DIR) or not pdf_path.exists():
+def get_document_pdf(
+    doc_id: str, user_id: str = Depends(validate_user_id), download: bool = False
+):
+    from core.storage import get_file_store
+
+    try:
+        result = get_file_store().get(user_id, doc_id)
+    except (FileNotFoundError, ValueError):
         raise HTTPException(status_code=404, detail="PDF not found")
-    return FileResponse(pdf_path, media_type="application/pdf", filename=f"{doc_id}.pdf")
+
+    if isinstance(result, str):
+        if download:
+            sep = "&" if "?" in result else "?"
+            result = f"{result}{sep}download={doc_id}.pdf"
+        return RedirectResponse(result)
+
+    headers = (
+        {"Content-Disposition": f'attachment; filename="{doc_id}.pdf"'} if download else {}
+    )
+    return Response(content=result, media_type="application/pdf", headers=headers)

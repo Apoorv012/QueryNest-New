@@ -15,8 +15,6 @@ from core.index.config import is_store_configured
 
 _has_pgvector = is_store_configured()
 
-UPLOAD_DIR = Path("data/uploads").resolve()
-
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 MAX_FILES_PER_REQUEST = 20
 _READ_CHUNK_SIZE = 1024 * 1024
@@ -48,11 +46,11 @@ class IngestFailed(RuntimeError):
     """
 
 
-def _rollback_ingest(doc_id: str, pdf_path: Path | None) -> None:
+def _rollback_ingest(doc_id: str, user_id: str) -> None:
     """Undo the side effects that precede indexing, best effort.
 
     Two writes happen before a document is searchable: the in-memory chunk
-    entry and the PDF on disk. Neither is transactional with the vector store,
+    entry and the stored PDF. Neither is transactional with the vector store,
     so on an indexing failure they are removed here.
 
     Deliberately swallows its own failures: a rollback that cannot finish must
@@ -61,16 +59,16 @@ def _rollback_ingest(doc_id: str, pdf_path: Path | None) -> None:
     was never indexed.
     """
     from core.api.store import _documents
+    from core.storage import get_file_store
 
     try:
         _documents.pop(doc_id, None)
     except Exception:  # noqa: BLE001, S110 - see docstring
         pass
-    if pdf_path is not None:
-        try:
-            pdf_path.unlink(missing_ok=True)
-        except OSError:
-            pass
+    try:
+        get_file_store().delete(user_id, doc_id)
+    except Exception:  # noqa: BLE001, S110 - see docstring
+        pass
 
 
 def _is_pdf_content(data: bytes) -> bool:
@@ -129,14 +127,10 @@ def _process_file(
         )
 
         from core.api.store import save_document
-        save_document(doc_id, filename, chunks)
+        from core.storage import get_file_store
 
-        pdf_dir = (UPLOAD_DIR / user_id).resolve()
-        if not pdf_dir.is_relative_to(UPLOAD_DIR):
-            raise ValueError(f"Invalid user_id: {user_id!r}")
-        pdf_dir.mkdir(parents=True, exist_ok=True)
-        stored_pdf_path = pdf_dir / f"{doc_id}.pdf"
-        stored_pdf_path.write_bytes(file_data)
+        save_document(doc_id, filename, chunks)
+        get_file_store().save(user_id, doc_id, file_data)
 
         # Indexing is the last step and the one that makes a document
         # findable. If it fails, roll back the two side effects that already
@@ -195,7 +189,7 @@ def _process_file(
                 # the real cause and the user would be told "cannot delete"
                 # instead of "connection refused".
                 try:
-                    _rollback_ingest(doc_id, stored_pdf_path)
+                    _rollback_ingest(doc_id, user_id)
                 except Exception:  # noqa: BLE001, S110 - original error wins
                     pass
                 raise IngestFailed(f"indexing failed: {e}") from e

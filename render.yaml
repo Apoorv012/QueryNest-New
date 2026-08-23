@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: querynest-public-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: QUERYNEST_STORAGE_MODE
+        value: supabase
+      # Secrets: entered once in the Render dashboard, never committed here.
+      # QUERYNEST_DATABASE_URL must be the Supabase *pooler* connection string
+      # (aws-0-<region>.pooler.supabase.com:6543), not the direct db.<ref>.supabase.co
+      # host — the direct host is IPv6-only and Render's network is IPv4-only.
+      - key: QUERYNEST_DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: pdfs
+      # Comma-separated. Set once the Vercel frontend URL is known; update
+      # again once the custom domain (querynest.apoorvm.com) is live.
+      - key: QUERYNEST_DEMO_ORIGIN
+        sync: false
