@@ -58,14 +58,11 @@ class PgVectorStore(VectorStore):
                     CREATE TABLE IF NOT EXISTS chunks (
                         id              SERIAL PRIMARY KEY,
                         document_id     TEXT NOT NULL,
-                        user_id         TEXT NOT NULL DEFAULT 'default',
-                        filename        TEXT NOT NULL DEFAULT '',
                         chunk_index     INTEGER NOT NULL,
                         text            TEXT NOT NULL,
                         heading         TEXT NOT NULL DEFAULT '',
                         embedding       vector(384) NOT NULL,
                         page            INTEGER NOT NULL DEFAULT 0,
-                        document_date   DATE,
                         created_at      TIMESTAMP DEFAULT NOW()
                     )
                 """)
@@ -83,23 +80,92 @@ class PgVectorStore(VectorStore):
                     ON chunks USING hnsw (embedding vector_cosine_ops)
                 """)
                 cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_chunks_user_id
-                    ON chunks (user_id)
-                """)
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_chunks_document_date
-                    ON chunks (document_date)
-                """)
-                cur.execute("""
                     CREATE INDEX IF NOT EXISTS idx_chunks_document_id
                     ON chunks (document_id)
                 """)
                 cur.execute("""
                     ALTER TABLE chunks ADD COLUMN IF NOT EXISTS source_blocks JSONB
                 """)
+
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS documents (
+                        document_id     TEXT PRIMARY KEY,
+                        user_id         TEXT NOT NULL,
+                        filename        TEXT NOT NULL DEFAULT '',
+                        document_date   DATE,
+                        content_hash    TEXT,
+                        page_count      INTEGER,
+                        chunk_count     INTEGER,
+                        storage_path    TEXT,
+                        created_at      TIMESTAMP DEFAULT NOW()
+                    )
+                """)
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_documents_user_id
+                    ON documents (user_id)
+                """)
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_documents_date
+                    ON documents (user_id, document_date)
+                """)
+                # content_hash is nullable and the uniqueness constraint is
+                # partial: documents ingested before hashing existed have no
+                # hash, and fabricating one would be worse than admitting it.
+                # New ingests always set it, so dedup still holds for them.
+                cur.execute("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS idx_documents_user_hash
+                    ON documents (user_id, content_hash)
+                    WHERE content_hash IS NOT NULL
+                """)
             conn.commit()
+            self._migrate_document_metadata(conn)
         finally:
             self._release(conn)
+
+    def _migrate_document_metadata(self, conn) -> None:
+        """Move per-document metadata off `chunks` and onto `documents`.
+
+        `chunks` holds the only copy of user_id/filename/document_date, so the
+        backfill must complete before those columns are dropped. Written as an
+        explicit, re-runnable step rather than another `setup()` mutation:
+        `ADD COLUMN IF NOT EXISTS` is safely idempotent, a column *drop* is not,
+        and getting the order wrong loses the metadata irrecoverably.
+        """
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'chunks' AND column_name = 'user_id'
+            """)
+            if cur.fetchone() is None:
+                return  # already migrated
+
+            # Backfill first. MIN(created_at) keeps the original ingest time;
+            # a document's rows all share the same metadata, so MIN over the
+            # rest is just "pick the value".
+            cur.execute("""
+                INSERT INTO documents
+                    (document_id, user_id, filename, document_date, chunk_count, created_at)
+                SELECT document_id,
+                       MIN(user_id),
+                       MIN(filename),
+                       MIN(document_date),
+                       COUNT(*),
+                       MIN(created_at)
+                FROM chunks
+                GROUP BY document_id
+                ON CONFLICT (document_id) DO NOTHING
+            """)
+            migrated = cur.rowcount
+
+            # Only now is it safe to drop the source of truth.
+            cur.execute("ALTER TABLE chunks DROP COLUMN IF EXISTS user_id")
+            cur.execute("ALTER TABLE chunks DROP COLUMN IF EXISTS filename")
+            cur.execute("ALTER TABLE chunks DROP COLUMN IF EXISTS document_date")
+            cur.execute("DROP INDEX IF EXISTS idx_chunks_user_id")
+            cur.execute("DROP INDEX IF EXISTS idx_chunks_document_date")
+        conn.commit()
+        if migrated:
+            print(f"  migrated {migrated} documents to the documents table")
 
     def store_chunks(
         self,
@@ -113,34 +179,51 @@ class PgVectorStore(VectorStore):
         chunk_indices: list[int],
         document_date: date | None = None,
         source_blocks: list[list[dict]] | None = None,
+        content_hash: str | None = None,
+        page_count: int | None = None,
     ) -> None:
         import json
         conn = self._connect()
         try:
             from psycopg2.extras import execute_values
             with conn.cursor() as cur:
+                # The document row must exist before its chunks reference it.
+                cur.execute(
+                    """
+                    INSERT INTO documents (document_id, user_id, filename,
+                                           document_date, content_hash,
+                                           page_count, chunk_count)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (document_id) DO UPDATE SET
+                        filename      = EXCLUDED.filename,
+                        document_date = EXCLUDED.document_date,
+                        content_hash  = COALESCE(EXCLUDED.content_hash,
+                                                 documents.content_hash),
+                        page_count    = EXCLUDED.page_count,
+                        chunk_count   = EXCLUDED.chunk_count
+                    """,
+                    (document_id, user_id, filename, document_date,
+                     content_hash, page_count, len(texts)),
+                )
                 rows = []
                 for i, text in enumerate(texts):
                     vec_str = "[" + ",".join(f"{v:.6f}" for v in embeddings[i]) + "]"
                     sb_json = json.dumps(source_blocks[i]) if source_blocks else None
                     rows.append((
                         document_id,
-                        user_id,
-                        filename,
                         chunk_indices[i],
                         text,
                         headings[i],
                         vec_str,
                         pages[i],
-                        document_date,
                         sb_json,
                     ))
                 execute_values(
                     cur,
                     """
                     INSERT INTO chunks
-                        (document_id, user_id, filename, chunk_index, text, heading,
-                         embedding, page, document_date, source_blocks)
+                        (document_id, chunk_index, text, heading,
+                         embedding, page, source_blocks)
                     VALUES %s
                     """,
                     rows,
@@ -166,30 +249,30 @@ class PgVectorStore(VectorStore):
 
             vec_str = "[" + ",".join(f"{v:.6f}" for v in query_embedding) + "]"
 
-            conditions: list[sql.Composable] = [sql.SQL("user_id = %s")]
+            conditions: list[sql.Composable] = [sql.SQL("d.user_id = %s")]
             params: list = [user_id]
 
             # D12: three mutually exclusive tiers rather than one fuzzy
             # predicate. Because the tiers cannot overlap, results from
             # successive tiers never need de-duplicating against each other.
             if date_mode == DATE_MATCH_UNDATED:
-                conditions.append(sql.SQL("document_date IS NULL"))
+                conditions.append(sql.SQL("d.document_date IS NULL"))
             elif date_mode == DATE_MATCH_IN_RANGE:
-                conditions.append(sql.SQL("document_date IS NOT NULL"))
+                conditions.append(sql.SQL("d.document_date IS NOT NULL"))
                 if date_from is not None:
-                    conditions.append(sql.SQL("document_date >= %s"))
+                    conditions.append(sql.SQL("d.document_date >= %s"))
                     params.append(date_from)
                 if date_to is not None:
-                    conditions.append(sql.SQL("document_date <= %s"))
+                    conditions.append(sql.SQL("d.document_date <= %s"))
                     params.append(date_to)
             elif date_mode == DATE_MATCH_OUT_OF_RANGE:
-                conditions.append(sql.SQL("document_date IS NOT NULL"))
+                conditions.append(sql.SQL("d.document_date IS NOT NULL"))
                 bounds: list[sql.Composable] = []
                 if date_from is not None:
-                    bounds.append(sql.SQL("document_date < %s"))
+                    bounds.append(sql.SQL("d.document_date < %s"))
                     params.append(date_from)
                 if date_to is not None:
-                    bounds.append(sql.SQL("document_date > %s"))
+                    bounds.append(sql.SQL("d.document_date > %s"))
                     params.append(date_to)
                 if bounds:
                     conditions.append(
@@ -200,12 +283,13 @@ class PgVectorStore(VectorStore):
 
             query = sql.SQL(
                 """
-                SELECT id, document_id, text, heading, page, document_date,
-                       source_blocks,
-                       1 - (embedding <=> %s::vector) AS score
-                FROM chunks
+                SELECT c.id, c.document_id, d.filename, c.text, c.heading, c.page,
+                       d.document_date, c.source_blocks,
+                       1 - (c.embedding <=> %s::vector) AS score
+                FROM chunks c
+                JOIN documents d ON d.document_id = c.document_id
                 WHERE {where}
-                ORDER BY embedding <=> %s::vector
+                ORDER BY c.embedding <=> %s::vector
                 LIMIT %s
                 """
             ).format(where=where)
@@ -215,7 +299,7 @@ class PgVectorStore(VectorStore):
                 import json
                 results = []
                 for row in cur.fetchall():
-                    raw_sb = row[6]
+                    raw_sb = row[7]
                     sb_list = []
                     if raw_sb:
                         sb_data = raw_sb if isinstance(raw_sb, list) else json.loads(raw_sb)
@@ -229,15 +313,33 @@ class PgVectorStore(VectorStore):
                     results.append(SearchResult(
                         chunk_id=row[0],
                         document_id=row[1],
-                        text=row[2],
-                        heading=row[3],
-                        score=float(row[7]),
-                        page=row[4],
-                        document_date=row[5],
+                        filename=row[2],
+                        text=row[3],
+                        heading=row[4],
+                        score=float(row[8]),
+                        page=row[5],
+                        document_date=row[6],
                         source_blocks=sb_list,
                         date_match=date_mode or DATE_MATCH_UNFILTERED,
                     ))
                 return results
+        finally:
+            self._release(conn)
+
+    def find_by_content_hash(self, user_id: str, content_hash: str) -> str | None:
+        conn = self._connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT document_id FROM documents
+                    WHERE user_id = %s AND content_hash = %s
+                    LIMIT 1
+                    """,
+                    (user_id, content_hash),
+                )
+                row = cur.fetchone()
+                return row[0] if row else None
         finally:
             self._release(conn)
 
@@ -247,11 +349,11 @@ class PgVectorStore(VectorStore):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT document_id, filename, document_date, COUNT(*) as chunk_count
-                    FROM chunks
+                    SELECT document_id, filename, document_date,
+                           COALESCE(chunk_count, 0)
+                    FROM documents
                     WHERE user_id = %s
-                    GROUP BY document_id, filename, document_date
-                    ORDER BY MIN(created_at) DESC
+                    ORDER BY created_at DESC
                     """,
                     (user_id,),
                 )
@@ -276,7 +378,7 @@ class PgVectorStore(VectorStore):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    UPDATE chunks SET document_date = %s
+                    UPDATE documents SET document_date = %s
                     WHERE document_id = %s AND user_id = %s
                     """,
                     (document_date, document_id, user_id),
@@ -290,7 +392,16 @@ class PgVectorStore(VectorStore):
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    "DELETE FROM chunks WHERE document_id = %s AND user_id = %s",
+                    """
+                    DELETE FROM chunks WHERE document_id IN (
+                        SELECT document_id FROM documents
+                        WHERE document_id = %s AND user_id = %s
+                    )
+                    """,
+                    (document_id, user_id),
+                )
+                cur.execute(
+                    "DELETE FROM documents WHERE document_id = %s AND user_id = %s",
                     (document_id, user_id),
                 )
             conn.commit()
@@ -302,10 +413,15 @@ class PgVectorStore(VectorStore):
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    "DELETE FROM chunks WHERE user_id = %s",
+                    """
+                    DELETE FROM chunks WHERE document_id IN (
+                        SELECT document_id FROM documents WHERE user_id = %s
+                    )
+                    """,
                     (user_id,),
                 )
                 deleted = cur.rowcount
+                cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))
             conn.commit()
             return deleted
         finally:

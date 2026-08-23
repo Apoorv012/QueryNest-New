@@ -28,7 +28,6 @@ _has_pgvector = is_store_configured()
 # about 1.3ms (7.1ms -> 8.4ms at depth 50).
 OVERFETCH_FACTOR = 5
 
-
 def _first_per_document(results: list, limit: int) -> list:
     """Keep the best-scoring chunk per document, preserving rank order."""
     seen: set[str] = set()
@@ -136,6 +135,7 @@ def search(body: SearchRequest):
             {
                 "chunk_id": r.chunk_id,
                 "document_id": r.document_id,
+                "filename": r.filename,
                 "text": r.text,
                 "heading": r.heading,
                 "score": r.score,

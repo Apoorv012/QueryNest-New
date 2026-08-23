@@ -146,6 +146,10 @@ class TestUpload:
 
         fake_store = MagicMock()
         fake_store.store_chunks.side_effect = FakeDbError("connection refused")
+        # Explicit: a bare MagicMock returns a truthy mock for any method, so
+        # the content-hash dedup lookup would short-circuit this upload as a
+        # duplicate and never reach the indexing failure under test.
+        fake_store.find_by_content_hash.return_value = None
 
         with patch("core.api.routes.upload._has_pgvector", True), \
              patch("core.index.get_vector_store", return_value=fake_store):
@@ -178,6 +182,7 @@ class TestUpload:
 
         fake_store = MagicMock()
         fake_store.store_chunks.side_effect = RuntimeError("db gone")
+        fake_store.find_by_content_hash.return_value = None
 
         with patch("core.api.routes.upload._has_pgvector", True), \
              patch("core.index.get_vector_store", return_value=fake_store), \
@@ -195,6 +200,39 @@ class TestUpload:
         # otherwise the user is told "cannot delete" instead of the real cause.
         assert "db gone" in file_status["error"]
         assert "cannot delete" not in file_status["error"]
+
+    def test_identical_bytes_short_circuit_without_reprocessing(self, client):
+        # Extraction is ~77% of ingest at roughly 1790 ms/page, so a re-upload
+        # of the same bytes must skip it entirely rather than redo it.
+        fake_store = MagicMock()
+        fake_store.find_by_content_hash.return_value = "existing-doc-id"
+
+        with patch("core.api.routes.upload._has_pgvector", True),              patch("core.index.get_vector_store", return_value=fake_store),              patch("core.ingest.extractor.extract") as fake_extract:
+            data = _upload_pdf(client)
+
+        status = client.get(f"/upload/{data['job_id']}/status").json()
+        file_status = status["files"][0]
+        assert file_status["status"] == "done"
+        assert file_status["document_id"] == "existing-doc-id"
+        # Reported as a success, but flagged so the UI does not imply work
+        # happened that did not.
+        assert file_status["was_duplicate"] is True
+        fake_extract.assert_not_called()
+        fake_store.store_chunks.assert_not_called()
+
+    def test_a_dedup_lookup_failure_does_not_block_ingest(self, client):
+        # Dedup is an optimisation. If the lookup errors, the upload must
+        # still proceed rather than fail on a non-essential step.
+        fake_store = MagicMock()
+        fake_store.find_by_content_hash.side_effect = RuntimeError("db hiccup")
+
+        with patch("core.api.routes.upload._has_pgvector", True),              patch("core.index.get_vector_store", return_value=fake_store):
+            data = _upload_pdf(client)
+
+        status = client.get(f"/upload/{data['job_id']}/status").json()
+        assert status["files"][0]["status"] == "done"
+        assert status["files"][0]["was_duplicate"] is False
+        fake_store.store_chunks.assert_called_once()
 
     def test_upload_never_constructs_a_real_vector_store(self, client):
         # Regression guard for the leak where `_has_pgvector` (computed at

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import time
 import uuid
 from pathlib import Path
@@ -90,6 +91,26 @@ def _process_file(
     from core.ingest.extractor import extract
 
     start = time.perf_counter()
+
+    # Extraction is ~77% of ingest at roughly 1790 ms/page, so re-processing a
+    # byte-identical file is the most expensive avoidable work in the pipeline.
+    # Hash before doing any of it.
+    content_hash = hashlib.sha256(file_data).hexdigest()
+    if _has_pgvector:
+        try:
+            from core.index import get_vector_store
+
+            existing = get_vector_store().find_by_content_hash(user_id, content_hash)
+        except Exception:  # noqa: BLE001 - a dedup lookup failure must not block ingest
+            existing = None
+        if existing is not None:
+            update_file_status(
+                job_id, index, status="done", document_id=existing,
+                was_duplicate=True,
+                processing_ms=(time.perf_counter() - start) * 1000,
+            )
+            return
+
     doc_id = uuid.uuid4().hex[:12]
 
     tmp_path = Path("tmp") / f"{doc_id}.pdf"
@@ -162,6 +183,8 @@ def _process_file(
                     chunk_indices=[c.chunk_index for c in chunks],
                     document_date=detected_date,
                     source_blocks=source_blocks_data,
+                    content_hash=content_hash,
+                    page_count=len(doc.pages),
                 )
             # Catch Exception, not (RuntimeError, OSError): psycopg2.Error is
             # neither, and letting it escape used to pin the job at "pending".
@@ -271,6 +294,7 @@ def upload_status(job_id: str):
                 "date_source": f.date_source,
                 "error": f.error,
                 "processing_ms": f.processing_ms,
+                "was_duplicate": f.was_duplicate,
             }
             for f in job.files
         ],

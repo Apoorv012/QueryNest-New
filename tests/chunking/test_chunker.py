@@ -1,5 +1,6 @@
-from core.chunking.chunker import _chunk_blocks
-from core.models.extracted import ExtractedBlock
+from core.chunking.chunker import DROP_BELOW_TOKENS, _chunk_blocks, chunk_document
+from core.chunking.tokenizer import estimate_tokens
+from core.models.extracted import ExtractedBlock, ExtractedDocument, ExtractedPage
 
 
 def _block(text, btype="text"):
@@ -110,3 +111,57 @@ def test_real_pdf_chunking(extracted_doc):
     assert all(c.text.strip() != "" for c in chunks)
     assert all(c.heading != "" for c in chunks[1:])
     assert chunks[0].chunk_index == 0
+
+
+class TestDropUnusableChunks:
+    """Consecutive section-headers emit a chunk whose entire content is the
+    first heading ("4 Results", "E Additional Details"). At 2-3 tokens these
+    embed to a vague near-centroid vector that sits at middling distance from
+    every query, so they surface as plausible noise — measured at ranks 3 and 6
+    for "job descriptions", ahead of three real job descriptions."""
+
+    @staticmethod
+    def _block(text, block_type="text"):
+        return ExtractedBlock(text=text, page=0, bbox=(0, 0, 1, 1), type=block_type)
+
+    @classmethod
+    def _doc(cls, blocks):
+        return ExtractedDocument(
+            filename="x",
+            pages=[ExtractedPage(page_number=0, width=1, height=1, blocks=blocks)],
+        )
+
+    BODY = " ".join(["word"] * 200)
+
+    def test_heading_only_chunk_is_dropped(self):
+        doc = self._doc([
+            self._block("4 Results", "section-header"),
+            self._block("E Additional Details", "section-header"),
+            self._block(self.BODY),
+        ])
+        chunks = chunk_document(doc)
+        assert all(estimate_tokens(c.text) >= DROP_BELOW_TOKENS for c in chunks)
+        assert not any(c.text.strip() == "4 Results" for c in chunks)
+
+    def test_real_content_is_never_dropped(self):
+        doc = self._doc([
+            self._block("H1", "section-header"), self._block(self.BODY),
+            self._block("H2", "section-header"), self._block(self.BODY),
+        ])
+        assert len(chunk_document(doc)) >= 2
+
+    def test_an_entirely_tiny_document_is_still_indexed(self):
+        # Dropping must never remove a document from the corpus outright — a
+        # one-line receipt should still be findable.
+        chunks = chunk_document(self._doc([self._block("paid in full")]))
+        assert len(chunks) == 1
+        assert "paid in full" in chunks[0].text
+
+    def test_chunk_indices_stay_contiguous_after_dropping(self):
+        doc = self._doc([
+            self._block("A", "section-header"),
+            self._block("B", "section-header"), self._block(self.BODY),
+            self._block("C", "section-header"), self._block(self.BODY),
+        ])
+        chunks = chunk_document(doc)
+        assert [c.chunk_index for c in chunks] == list(range(len(chunks)))

@@ -79,6 +79,11 @@ def generate_report(
             "query": r.query.query,
             "type": r.query.type,
             "precision_at_5": round(r.precisions.get(5, 0), 4),
+            # recall@5 is stored per query as well as aggregated: an
+            # improvement can live entirely at ranks 6-10 moving into the top
+            # 5, which recall@10 cannot show (it stays pinned at 1.0) and MRR
+            # cannot show (the first hit does not move).
+            "recall_at_5": round(r.recalls.get(5, 0), 4),
             "recall_at_10": round(r.recalls.get(10, 0), 4),
             "mrr": round(r.rr, 4),
             "latency_ms": round(r.latency_ms, 1),

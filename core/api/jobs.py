@@ -14,6 +14,10 @@ class FileStatus:
     date_source: str | None = None
     error: str | None = None
     processing_ms: float | None = None
+    # True when this file was already present (same bytes, same user) and was
+    # not re-processed. Still a success — but the UI should say so rather than
+    # implying work happened.
+    was_duplicate: bool = False
 
 
 @dataclass
@@ -75,6 +79,7 @@ def update_file_status(
     date_source: str | None = None,
     error: str | None = None,
     processing_ms: float | None = None,
+    was_duplicate: bool | None = None,
 ) -> None:
     with _jobs_lock:
         job = _jobs.get(job_id)
@@ -93,3 +98,5 @@ def update_file_status(
             f.error = error
         if processing_ms is not None:
             f.processing_ms = processing_ms
+        if was_duplicate is not None:
+            f.was_duplicate = was_duplicate

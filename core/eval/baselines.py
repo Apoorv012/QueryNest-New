@@ -72,13 +72,14 @@ def bm25_search(
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT document_id,
-                       MAX(ts_rank(to_tsvector('english', text),
+                SELECT c.document_id,
+                       MAX(ts_rank(to_tsvector('english', c.text),
                                    to_tsquery('english', %s))) AS score
-                FROM chunks
-                WHERE user_id = %s
-                  AND to_tsvector('english', text) @@ to_tsquery('english', %s)
-                GROUP BY document_id
+                FROM chunks c
+                JOIN documents d ON d.document_id = c.document_id
+                WHERE d.user_id = %s
+                  AND to_tsvector('english', c.text) @@ to_tsquery('english', %s)
+                GROUP BY c.document_id
                 ORDER BY score DESC
                 LIMIT %s
                 """,
