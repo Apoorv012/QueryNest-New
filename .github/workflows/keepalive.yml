@@ -1,0 +1,21 @@
+name: Keep public API warm
+
+# Render's free tier spins the service down after ~15 min idle, and the next
+# request pays a cold-start penalty (ONNX model load + Postgres connect) —
+# felt by recruiters as "backend offline" on first load. Pinging /health
+# well inside that 15-minute window keeps it from ever spinning down.
+#
+# GitHub's cron scheduler isn't exact under load, so this is a best-effort
+# mitigation, not a guarantee — see the deploy notes for the paid-tier
+# alternative if a missed ping ever matters.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: curl -fsS https://querynest-public-api.onrender.com/health
