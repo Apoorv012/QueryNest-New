@@ -18,6 +18,15 @@ import os
 os.environ["QUERYNEST_DATABASE_URL"] = ""
 os.environ["QUERYNEST_LOCAL_DATABASE_URL"] = ""
 
+# Pin PDF storage to the local filesystem backend for the whole test session.
+# `core/storage/config.py::get_file_store()` reads `get_storage_mode()`, which
+# DEFAULTS to "supabase" when unset. On CI (no `.env`) that made the two
+# `core/storage/`-exercising tests build a `SupabaseFileStore`, whose
+# `__init__` does `os.environ["SUPABASE_URL"]` -> KeyError: the PDF download
+# route returned 500/404 instead of 404/200. Same must-run-before-load_dotenv
+# reasoning as the two lines above.
+os.environ["QUERYNEST_STORAGE_MODE"] = "local"
+
 import pytest
 
 from core.ingest.extractor import extract
@@ -54,6 +63,12 @@ def _block_real_vector_store(monkeypatch):
     """
     monkeypatch.setenv("QUERYNEST_DATABASE_URL", "")
     monkeypatch.setenv("QUERYNEST_LOCAL_DATABASE_URL", "")
+
+    # Belt-and-suspenders for the storage backend (see module-level note), plus
+    # drop the cached FileStore so a backend selected by an earlier test never
+    # leaks into this one.
+    monkeypatch.setenv("QUERYNEST_STORAGE_MODE", "local")
+    monkeypatch.setattr("core.storage.config._cached_store", None)
 
     def _refuse(*_args, **_kwargs):
         raise RuntimeError(
