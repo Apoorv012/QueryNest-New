@@ -43,6 +43,13 @@ class PgVectorStore(VectorStore):
         return self._pool
 
     def _connect(self) -> psycopg2.extensions.connection:
+        pool = self._get_pool()
+        conn = pool.getconn()
+
+        if conn.closed:
+            pool.putconn(conn, close=True)
+            conn = pool.getconn()
+
         return self._get_pool().getconn()
 
     def _release(self, conn: psycopg2.extensions.connection) -> None:
@@ -183,6 +190,7 @@ class PgVectorStore(VectorStore):
         page_count: int | None = None,
     ) -> None:
         import json
+        pool = self._get_pool()
         conn = self._connect()
         try:
             from psycopg2.extras import execute_values
@@ -231,8 +239,14 @@ class PgVectorStore(VectorStore):
                     page_size=100,
                 )
             conn.commit()
+        except psycopg2.Error:
+            # This connection may be dead.
+            pool.putconn(conn, close=True)
+            conn = None
+            raise
         finally:
-            self._release(conn)
+            if conn is not None:
+                self._release(conn)
 
     def search(
         self,
